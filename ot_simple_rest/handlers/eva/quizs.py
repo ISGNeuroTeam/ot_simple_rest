@@ -164,16 +164,16 @@ class FilledQuizExportHandler(BaseHandler):
         questions = quiz_data['questions']
         quiz_name = quiz_data['name'].replace('«', '"').replace('»', '"')
         quiz_name = quiz_name.replace(' ', '_')
-        filled = quiz_data['fill_date'].replace(' ', '').replace(':', '')
+        filled = quiz_data['fill_date']
 
         filename = f'{quiz_name}_{filled}.xlsx'
-        filepath = os.path.join(self.static_conf['static_path'], 'xlsx', filename)
+        filepath = os.path.join(self.static_conf['static_path'] + 'xlsx', filename)
         if os.path.exists(filepath):
             return self.write(f'/xlsx/{filename}')
 
         wb = Workbook()
         ws = wb.active
-        ws.title = 'чек-лист'
+        ws.title = f'Чек-лист {quiz_id}'
         cell_range = ws['A1':'F1']
         col_range = ['№', 'Вопрос', 'Ответ', 'Пояснение', 'Ключевой', 'Метка']
         for c, v in zip(*cell_range, col_range):

@@ -7,13 +7,16 @@ import os
 from configparser import ConfigParser
 
 import tornado.ioloop
+import tornado.httpserver
 import tornado.web
 
-from psycopg2.pool import ThreadedConnectionPool
+# from psycopg2.pool import ThreadedConnectionPool
+from psycopg2.pool import SimpleConnectionPool
 
 from handlers.eva.auth import AuthLoginHandler
 from handlers.eva.logs import LogsHandler
-from handlers.eva.dashs import DashboardHandler, DashboardsHandler, SvgLoadHandler
+from handlers.eva.dashs import DashboardHandler, DashboardsHandler, SvgLoadHandler, DashExportHandler, \
+    DashImportHandler, GroupExportHandler, GroupImportHandler
 from handlers.eva.quizs import QuizsHandler, QuizHandler, QuizQuestionsHandler, QuizFilledHandler, \
     FilledQuizExportHandler, QuizExportJsonHandler, QuizImportJsonHandler, CatalogsListHandler, CatalogHandler
 from handlers.eva.role_model import UserHandler, UsersHandler, RoleHandler, RolesHandler, \
@@ -36,7 +39,7 @@ __author__ = "Andrey Starchenkov"
 __copyright__ = "Copyright 2019, Open Technologies 98"
 __credits__ = ["Anton Khromov"]
 __license__ = ""
-__version__ = "1.1.4"
+__version__ = "1.0.1"
 __maintainer__ = "Anton Khromov"
 __email__ = "akhromov@ot.ru"
 __status__ = "Production"
@@ -134,8 +137,11 @@ def main():
     logger.info('DB configuration: %s' % db_conf)
     logger.info('MEM configuration: %s' % mem_conf)
 
-    db_pool = ThreadedConnectionPool(int(pool_conf['min_size']), int(pool_conf['max_size']), **db_conf)
-    db_pool_eva = ThreadedConnectionPool(int(pool_conf['min_size']), int(pool_conf['max_size']), **db_conf_eva)
+    # db_pool = ThreadedConnectionPool(int(pool_conf['min_size']), int(pool_conf['max_size']), **db_conf)
+    # db_pool_eva = ThreadedConnectionPool(int(pool_conf['min_size']), int(pool_conf['max_size']), **db_conf_eva)
+
+    db_pool = SimpleConnectionPool(int(pool_conf['min_size']), int(pool_conf['max_size']), **db_conf)
+    db_pool_eva = SimpleConnectionPool(int(pool_conf['min_size']), int(pool_conf['max_size']), **db_conf_eva)
 
     # Create jobs manager instance and start it
     manager = JobsManager(db_conn_pool=db_pool, mem_conf=mem_conf, disp_conf=disp_conf, resolver_conf=resolver_conf)
@@ -172,6 +178,8 @@ def main():
 
         (r'/api/groups', GroupsHandler, {"db_conn_pool": db_pool_eva}),
         (r'/api/group', GroupHandler, {"db_conn_pool": db_pool_eva}),
+        (r'/api/group/export', GroupExportHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
+        (r'/api/group/import', GroupImportHandler, {"db_conn_pool": db_pool_eva}),
         (r'/api/group/dashs', GroupDashboardsHandler, {"db_conn_pool": db_pool_eva}),
 
         (r'/api/roles', RolesHandler, {"db_conn_pool": db_pool_eva}),
@@ -185,10 +193,12 @@ def main():
 
         (r'/api/dashs', DashboardsHandler, {"db_conn_pool": db_pool_eva}),
         (r'/api/dash', DashboardHandler, {"db_conn_pool": db_pool_eva}),
+        (r'/api/dash/export', DashExportHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
+        (r'/api/dash/import', DashImportHandler, {"db_conn_pool": db_pool_eva}),
 
         (r'/api/load/svg', SvgLoadHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
 
-		(r'/qapi/quizs', QuizsHandler, {"db_conn_pool": db_pool_eva}),
+        (r'/qapi/quizs', QuizsHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/quiz', QuizHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/quiz/create', QuizHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/quiz/edit', QuizHandler, {"db_conn_pool": db_pool_eva}),
@@ -206,16 +216,24 @@ def main():
         (r'/qapi/catalog', CatalogHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/catalog/create', CatalogHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/catalog/edit', CatalogHandler, {"db_conn_pool": db_pool_eva}),
-        (r'/qapi/catalog/delete', CatalogHandler, {"db_conn_pool": db_pool_eva}),
+        (r'/qapi/catalog/delete', CatalogHandler, {"db_conn_pool": db_pool_eva})
     ],
-        login_url=r'/api/auth/login'
+        login_url=r'/api/auth/login',
+        debug=True
     )
 
     logger.info('Starting server')
 
     # Start application.
-    application.listen(50000)
-    tornado.ioloop.IOLoop.current().start()
+    try:
+        application.listen(50000)
+        tornado.ioloop.IOLoop.current().start()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        tornado.ioloop.IOLoop.current().stop()
+        db_pool.closeall()
+        db_pool_eva.closeall()
 
 
 if __name__ == '__main__':

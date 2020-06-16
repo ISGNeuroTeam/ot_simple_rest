@@ -1,21 +1,13 @@
-import logging
-from contextlib import contextmanager
-
-import tornado.util
-import psycopg2
+from tools.pg_connector import PGConnector
 
 __author__ = "Anton Khromov"
 __copyright__ = "Copyright 2019, Open Technologies 98"
 __credits__ = []
 __license__ = ""
-__version__ = "0.1.1"
+__version__ = "0.0.2"
 __maintainer__ = "Anton Khromov"
 __email__ = "akhromov@ot.ru"
 __status__ = "Production"
-
-
-class QueryError(Exception):
-    pass
 
 
 def flat_to_set(arr):
@@ -26,74 +18,9 @@ def flat_to_list(arr):
     return [i[0] for i in arr] if arr else list()
 
 
-class PostgresConnector:
-    def __init__(self, conn_pool):
-        self.pool = conn_pool
-        self.logger = logging.getLogger('osr')
-
-    @contextmanager
-    def transaction(self, name="transaction", **kwargs):
-        options = {
-            "isolation_level": kwargs.get("isolation_level", None),
-            "readonly": kwargs.get("readonly", None),
-            "deferrable": kwargs.get("deferrable", None),
-        }
-        conn = self.pool.getconn()
-        try:
-            conn.set_session(**options)
-            yield conn
-            conn.commit()
-        except Exception as e:
-            conn.rollback()
-            self.logger.error(f"Transaction {name} error: {e}")
-            raise RuntimeError(f"Transaction {name} failed")
-        finally:
-            conn.reset()
-            self.pool.putconn(conn)
-
-    def row_to_obj(self, row, cur):
-        """Convert a SQL row to an object supporting dict and attribute access."""
-        obj = tornado.util.ObjectDict()
-        for val, desc in zip(row, cur.description):
-            obj[desc.name] = val
-        return obj
-
-    def execute_query(self, query, conn=None, params=None, with_commit=False,
-                      with_fetch=True, as_obj=False, fetchall=False):
-        fetch_result = None
-
-        if not conn:
-            with_transaction = False
-            conn = self.pool.getconn()
-        else:
-            with_transaction = True
-
-        cur = conn.cursor()
-
-        try:
-            if params:
-                cur.execute(query, params)
-            else:
-                cur.execute(query)
-            if with_fetch:
-                if fetchall:
-                    fetch_result = cur.fetchall()
-                    if as_obj:
-                        fetch_result = [self.row_to_obj(row, cur) for row in fetch_result]
-                else:
-                    fetch_result = cur.fetchone()
-                    if as_obj and fetch_result:
-                        fetch_result = self.row_to_obj(fetch_result, cur)
-            if with_commit:
-                conn.commit()
-        except psycopg2.OperationalError as err:
-            self.logger.error(f'SQL Error: {err}')
-        else:
-            return fetch_result
-        finally:
-            cur.close()
-            if not with_transaction:
-                self.pool.putconn(conn)
+class PostgresConnector(PGConnector):
+    def __init(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     # __AUTH__ ######################################################################
 
@@ -786,6 +713,7 @@ class PostgresConnector:
                            params=(dash_id,), with_commit=True, with_fetch=False)
         return dash_id
 
+
     # __QUIZS__ ###############################################################
 
     QUIZ_TABLES = {'bool': 'boolAnswer', 'date': 'dateAnswer', 'text': 'textAnswer',
@@ -914,22 +842,18 @@ class PostgresConnector:
         return count[0]
 
     def get_filled_quiz(self, *, offset=0, limit=1, quiz_id=None, current=False):
-        # Get current quiz from filled_quiz table
         if quiz_id and current:
             f_quizs = self.execute_query(
-                "SELECT quiz_id as id, filler, fill_date FROM filled_quiz WHERE id = %s limit %s offset %s;",
+                "SELECT id, quiz_id, filler, fill_date FROM filled_quiz WHERE id = %s limit %s offset %s;",
                 params=(quiz_id, limit, offset), fetchall=True, as_obj=True)
-            quiz_id = f_quizs[0].id if f_quizs else None
+            quiz_id = f_quizs[0].quiz_id if f_quizs else None
             quiz_name = self.execute_query("SELECT name FROM quiz WHERE id = %s;", params=(quiz_id,), as_obj=True)
-        # Get filled quizs for current base quiz
         elif quiz_id:
             f_quizs = self.execute_query("SELECT * FROM filled_quiz WHERE quiz_id = %s order by id limit %s offset %s;",
                                          params=(quiz_id, limit, offset), fetchall=True, as_obj=True)
-            quiz_name = self.execute_query('SELECT name FROM quiz WHERE id = %s;',
-                                           params=(quiz_id,), as_obj=True)
-        # If not quiz_id get statistic by quiz name, filler and last fill date
-        # TODO: Maybe better to move this section in separate handler
         else:
+            # If not quiz_id get statistic by quiz name, filler and last fill date
+            #TODO: Maybe better to move this section in separate handler
             f_quizs = self.execute_query("select distinct on (quiz_id) quiz_id, fill_date, filler, "
                                          "quiz.name as name from filled_quiz inner join quiz on quiz.id=quiz_id "
                                          "order by quiz_id, fill_date desc;", fetchall=True, as_obj=True)
@@ -937,34 +861,51 @@ class PostgresConnector:
                 quiz['fill_date'] = str(quiz.fill_date)
             return f_quizs
 
-        _questions = self.execute_query("SELECT id, sid, type, text, is_sign, label FROM question "
-                                        "WHERE quiz_id = %s ORDER BY sid;", as_obj=True,
-                                        params=(quiz_id,), fetchall=True)
+        quiz_name = self.execute_query('SELECT name FROM quiz WHERE id = %s;',
+                                       params=(quiz_id,), as_obj=True)
 
         for quiz in f_quizs:
-            questions = deepcopy(_questions)
-            answers = self.execute_query(
-                'select filled_quiz.id as filled_quiz_id, question.type, question.sid as sid, '
-                'coalesce(textanswer.value, cascadeanswer.value, multianswer.value::text, '
-                'cataloganswer.value, dateanswer.value::text) as value, '
-                'coalesce (textanswer.description, cascadeanswer.description, multianswer.description, '
-                'cataloganswer.description, dateanswer.description) as description from filled_quiz '
-                'join question on question.quiz_id=filled_quiz.quiz_id '
-                'left join textanswer on textanswer.id=filled_quiz.id and textanswer.sid=question.sid '
-                'left join cascadeanswer on cascadeanswer.id=filled_quiz.id and cascadeanswer.sid=question.sid '
-                'left join multianswer on multianswer.id=filled_quiz.id and multianswer.sid=question.sid '
-                'left join cataloganswer on cataloganswer.id=filled_quiz.id and cataloganswer.sid=question.sid '
-                'left join dateanswer on dateanswer.id=filled_quiz.id and dateanswer.sid=question.sid '
-                'where filled_quiz.id = %s order by question.sid;',
-                params=(quiz.id,), fetchall=True, as_obj=True
-            )
+            questions = self.execute_query("SELECT id, sid, type, text, is_sign, label FROM question "
+                                           "WHERE filled_quiz_id = %s ORDER BY sid;", as_obj=True,
+                                           params=(quiz.id,), fetchall=True)
 
-            for q, a in zip(questions, answers):
-                q['answer'] = a
+            for q in questions:
+                ans_table = self.QUIZ_TABLES.get(q.type)
+                if not ans_table:
+                    raise QueryError(f'answer with type={q.type} is not exists')
+                query = "SELECT value, description FROM %s WHERE id = %%s;" % ans_table
+                answer = self.execute_query(query, params=(q.id,), as_obj=True)
+                answer['value'] = str(answer['value'])
+                q['answer'] = answer
+
             quiz['questions'] = questions
             quiz['name'] = quiz_name.name
             quiz['fill_date'] = str(quiz.fill_date)
         return f_quizs
+        #for quiz in f_quizs:
+        #    questions = self.execute_query("SELECT id, sid, type, text, is_sign, label FROM question "
+        #                                   "WHERE filled_quiz_id = %s ORDER BY sid;", as_obj=True,
+        #                                   params=(quiz.id,), fetchall=True)
+        #    answers = self.execute_query('select filled_quiz.id, question.id as qid, question.type, '
+        #                                 'coalesce(textanswer.value, cascadeanswer.value, multianswer.value::text, '
+        #                                 'cataloganswer.value, dateanswer.value::text) as value, coalesce '
+        #                                 '(textanswer.description, cascadeanswer.description, multianswer.description, '
+        #                                 'cataloganswer.description, dateanswer.description) as description from filled_quiz join question '
+        #                                 'on question.filled_quiz_id=filled_quiz.id left join textanswer '
+        #                                 'on textanswer.id=question.id left join cascadeanswer '
+        #                                 'on cascadeanswer.id=question.id left join multianswer '
+        #                                 'on multianswer.id=question.id left join cataloganswer '
+        #                                 'on cataloganswer.id=question.id left join dateanswer '
+        #                                 'on dateanswer.id=question.id where filled_quiz.id = %s;',
+        #                                 params=(quiz.id,), fetchall=True, as_obj=True)
+        #    for q in questions:
+        #        answer = [a for a in answers if a.qid == q.id]
+        #        q['answer'] = answer[0]
+
+        #    quiz['questions'] = questions
+        #    quiz['name'] = quiz_name.name
+        #    quiz['fill_date'] = str(quiz.fill_date)
+        #return f_quizs
 
     def save_filled_quiz(self, *, user_id, quiz_id, questions):
         with self.transaction('save_quiz') as conn:
@@ -972,17 +913,20 @@ class PostgresConnector:
                                       params=(user_id,), as_obj=True)
             quiz = self.execute_query("INSERT INTO filled_quiz (filler, quiz_id) VALUES (%s, %s) RETURNING id;",
                                       conn=conn, params=(user.name, quiz_id,), as_obj=True)
-
             for sid, q in enumerate(questions, 1):
+                question = self.execute_query("INSERT INTO question (sid, text, type, is_sign, label, filled_quiz_id) "
+                                              "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;", conn=conn,
+                                              params=(sid, q['text'], q['type'], q.get('is_sign', False),
+                                                      q.get('label', ''), quiz.id), as_obj=True)
                 answer = q.pop('answer', None)
                 if not answer:
                     continue
                 table = self.QUIZ_TABLES.get(q['type'])
                 if not table:
                     raise QueryError(f'answer with type {q["type"]} is not exists')
-                query = "INSERT INTO %s (id, sid, value, description) VALUES (%%s, %%s, %%s, %%s);" % table
+                query = "INSERT INTO %s (id, value, description) VALUES (%%s, %%s, %%s);" % table
                 self.execute_query(query, conn=conn, with_fetch=False,
-                                   params=(quiz.id, sid, answer['value'], answer.get('description')))
+                                   params=(question.id, answer['value'], answer.get('description')))
         return quiz_id
 
     def delete_quiz(self, quiz_id):
