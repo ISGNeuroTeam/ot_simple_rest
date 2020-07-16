@@ -20,6 +20,7 @@ from handlers.eva.quizs import QuizsHandler, QuizHandler, QuizQuestionsHandler, 
 from handlers.eva.role_model import UserHandler, UsersHandler, RoleHandler, RolesHandler, \
     PermissionsHandler, PermissionHandler, GroupsHandler, GroupHandler, UserPermissionsHandler, \
     IndexesHandler, IndexHandler, UserGroupsHandler, UserDashboardsHandler, GroupDashboardsHandler, UserSettingHandler
+from handlers.eva.papers import PaperHandler
 
 from handlers.jobs.makejob import MakeJob
 from handlers.jobs.loadjob import LoadJob
@@ -213,9 +214,12 @@ def main():
         (r'/qapi/catalog/create', CatalogHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/catalog/edit', CatalogHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/catalog/delete', CatalogHandler, {"db_conn_pool": db_pool_eva}),
+
+        (r'/api/eva/reports/load', PaperHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf}),
     ],
         login_url=r'/api/auth/login'
     )
+    
 
     logger.info('Starting server')
 
