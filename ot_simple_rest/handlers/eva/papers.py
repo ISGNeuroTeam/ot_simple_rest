@@ -23,7 +23,7 @@ __email__ = "fmetelkin@isgneuro.com"
 __status__ = "Develop"
 
 
-class PaperHandler(BaseHandler):
+class PaperLoadHandler(BaseHandler):
     def initialize(self, **kwargs):
         super().initialize(kwargs['db_conn_pool'])
         self.static_conf = kwargs['static_conf']
@@ -58,7 +58,47 @@ class PaperHandler(BaseHandler):
         if not os.path.exists(saving_full_path):
             with open(saving_full_path, 'wb') as f:
                 f.write(_file['body'])
-        self.write({'status': 'ok'})
+        self.write({'status': 'success'})
+
+class PapersHandler(BaseHandler):
+    def initialize(self, **kwargs):
+        super().initialize(kwargs['db_conn_pool'])
+        self.static_conf = kwargs['static_conf']
+        self.logger = logging.getLogger('osr')
+
+    async def get(self):
+      reports_path = self.static_conf['static_path'] + 'reports'
+      files = os.listdir(reports_path)
+      self.write({'files':files,'status': 'success'})
 
 
+class PaperHandler(BaseHandler):
+    def initialize(self, **kwargs):
+        super().initialize(kwargs['db_conn_pool'])
+        self.static_conf = kwargs['static_conf']
+        self.logger = logging.getLogger('osr')
 
+    async def prepare(self):
+      print('asdasd')
+        # client_token = self.get_cookie('eva_token')
+        # if client_token:
+        #     self.token = client_token
+        #     try:
+        #         token_data = self.decode_token(client_token)
+        #         user_id = token_data['user_id']
+        #         self.permissions = self.db.get_permissions_data(user_id=user_id,
+        #                                                         names_only=True)
+        #     except (jwt.ExpiredSignatureError, jwt.DecodeError):
+        #         pass
+        #     else:
+        #         self.current_user = user_id
+
+        # if not self.current_user:
+        #     raise tornado.web.HTTPError(401, "unauthorized")
+        
+
+    async def post(self):
+        body = self.request.body
+        reports_path = self.static_conf['static_path'] + 'reports'
+        print(body)
+        self.write({'status': 'success'})
