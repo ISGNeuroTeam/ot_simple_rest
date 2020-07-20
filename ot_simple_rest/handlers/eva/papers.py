@@ -3,6 +3,7 @@ import io
 import jwt
 import uuid
 import json
+import openpyxl
 import tempfile
 import tarfile
 from datetime import datetime
@@ -105,7 +106,18 @@ class PaperHandler(BaseHandler):
         full_path =  os.path.join(reports_path, file_name)
         data = args['data'][0].decode('utf-8')
         data = json.loads(data)
-        print(data,full_path)
+        format_file = file_name.split('.')[1]
+        file_res = ''
+        if format_file == 'xlsx':
+          file_res = self.work_xlsx(full_path,data)
+
+        # print(file_res)
+
+
+        # wb = openpyxl.load_workbook(full_path)
+        # sheet = wb.active
+        # print(sheet)
+
         # with open(full_path, 'r') as f:
             # f.read()
             # print(f.read())
@@ -118,6 +130,61 @@ class PaperHandler(BaseHandler):
 
         
        
-        self.write({'status': 'success'})
+        self.write({'file':file_res,'status': 'success'})
+
+    def work_xlsx(self,path,data):
+
+      wb = openpyxl.load_workbook(path)
+      sheet = wb.active
+      sheet_name = wb.get_sheet_names()[0]
+
+      # new_wb = openpyxl.Workbook()
+      # new_sheet = new_wb.active
+      # new_sheet.title = sheet_name
+      new_sheet = {}
+
+      
+  
+      for rownum in range(sheet.max_row):
+        for columnnum in range(sheet.max_column):
+
+          cell = sheet.cell(rownum + 1, columnnum + 1).value
+          for key in data.keys():
+            if cell == '$'+key+'$':
+              cell = data[key]
+          try:
+              new_sheet[str(rownum + 1)]
+          except:
+              new_sheet[str(rownum + 1)] = {}
+          # if not new_sheet[str(rownum + 1)]:
+          new_sheet[str(rownum + 1)][str(columnnum + 1)] = cell
+
+      return json.dumps(new_sheet)
+      # for rownum in range(new_sheet.max_row):
+      #   for columnnum in range(new_sheet.max_column):
+
+      #     cell = new_sheet.cell(rownum + 1, columnnum + 1).value
+      #     print(cell)
+
+
+      # wb = xlrd.open_workbook(path)
+      # sheet = wb.sheet_by_index(0)
+      # sheet_name = wb.sheet_names()[0]
+
+      # new_wb = xlwt.Workbook()
+      # new_sheet = new_wb.add_sheet(sheet_name)
+
+      
+      # for rownum in range(sheet.nrows):
+      #   row = sheet.row_values(rownum) 
+
+      #   for index, item in enumerate(row):
+      #     new_sheet.write(rownum+1, index+1, 'hello kitty')
+
+     
+      
+      # print(new_wb)
+      
+
 
 
