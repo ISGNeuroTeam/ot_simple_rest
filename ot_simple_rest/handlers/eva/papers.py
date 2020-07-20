@@ -79,26 +79,45 @@ class PaperHandler(BaseHandler):
         self.logger = logging.getLogger('osr')
 
     async def prepare(self):
-      print('asdasd')
-        # client_token = self.get_cookie('eva_token')
-        # if client_token:
-        #     self.token = client_token
-        #     try:
-        #         token_data = self.decode_token(client_token)
-        #         user_id = token_data['user_id']
-        #         self.permissions = self.db.get_permissions_data(user_id=user_id,
-        #                                                         names_only=True)
-        #     except (jwt.ExpiredSignatureError, jwt.DecodeError):
-        #         pass
-        #     else:
-        #         self.current_user = user_id
+        client_token = self.get_cookie('eva_token')
+        if client_token:
+            self.token = client_token
+            try:
+                token_data = self.decode_token(client_token)
+                user_id = token_data['user_id']
+                self.permissions = self.db.get_permissions_data(user_id=user_id,
+                                                                names_only=True)
+            except (jwt.ExpiredSignatureError, jwt.DecodeError):
+                pass
+            else:
+                self.current_user = user_id
 
-        # if not self.current_user:
-        #     raise tornado.web.HTTPError(401, "unauthorized")
+        if not self.current_user:
+            raise tornado.web.HTTPError(401, "unauthorized")
         
 
     async def post(self):
         body = self.request.body
+        args = {}
+        tornado.httputil.parse_body_arguments(self.request.headers['Content-Type'], body, args, {})
+        file_name = args['file'][0].decode('utf-8')
         reports_path = self.static_conf['static_path'] + 'reports'
-        print(body)
+        full_path =  os.path.join(reports_path, file_name)
+        data = args['data'][0].decode('utf-8')
+        data = json.loads(data)
+        print(data,full_path)
+        # with open(full_path, 'r') as f:
+            # f.read()
+            # print(f.read())
+        # for row in f:
+        #   print(row)
+
+        # for key in data.keys(): 
+        #   print(key)
+        # print(f)
+
+        
+       
         self.write({'status': 'success'})
+
+
