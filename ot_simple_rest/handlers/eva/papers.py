@@ -130,19 +130,13 @@ class PaperHandler(BaseHandler): # метод который изменит фа
   
       for rownum in range(sheet.max_row): # пробегаемся по всем строкам 
         for columnnum in range(sheet.max_column): #  и в каждой строке по всем столбцам
-
           cell = sheet.cell(rownum + 1, columnnum + 1).value #  запоминаем занчение в текущей ячейки
           for key in data.keys(): # пробегаемся по словарю данных с фронта
-            # if type(cell) != "NoneType":
-            #   print('norm')
-            # # if  cell.find('$'+key+'$') not -1:
-            # print(type(cell))
-            # print('-------')
-            if cell == '$'+key+'$': # если ключ словаря равен ячейке
-              cell = data[key]  # то заменяем значение ячейке на значение из данных
-              sheet.cell(rownum + 1, columnnum + 1).value = cell # Записываем измененую ячейку в файл
-
-
+            if cell is not None and type(cell) is str: # првоеряем не пустая ли ячейка и что ячейка строка 
+              if  cell.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
+                cell = cell.replace('$'+key+'$', data[key])  # то заменяем значение ячейке на значение из данных
+                sheet.cell(rownum + 1, columnnum + 1).value = cell # Записываем измененую ячейку в файл
+            
       reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
       full_path =  os.path.join(reports_path, name_file+'-changed'+'.xlsx') # уже полный путь с названием файла
       wb.save(full_path) # сохраняем измененный файл в папку
