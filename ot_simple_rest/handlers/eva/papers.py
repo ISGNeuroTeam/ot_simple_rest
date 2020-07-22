@@ -3,6 +3,7 @@ import io
 import jwt
 import uuid
 import json
+# import docx
 import openpyxl
 import tempfile
 import tarfile
@@ -117,9 +118,17 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         file_res = ''  # результат в виде ссылки на измененный файл
         if about_file[1] == 'xlsx': # если файл с разрешением xlsx 
           file_res = self.work_xlsx(full_path,data,about_file[0]) # то вызываем метод который обработает xlsx
+        else:
+          file_res = self.work_docx(full_path,data,about_file[0]) # то вызываем метод который обработает docx
+        
 
             
         self.write({'file':file_res,'status': 'success'}) # вернем ссылку на новый обработанный файл и сообщение что все успешно прошло
+
+    def work_docx(self,path,data,name_file): # метод для работы с xlsx файлами
+      result = ''
+      print(path,data,name_file)
+      return result # возвращаем ссылку на измененный файл 
 
     def work_xlsx(self,path,data,name_file): # метод для работы с xlsx файлами
 
@@ -146,27 +155,27 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         files.append(filename) # уже полный путь с названием файла
         wb.save(os.path.join(reports_path, filename)) # сохраняем измененный файл в папку
 
-      if len(files) > 1:
+      if len(files) > 1: #  если у нас несколько файлов
 
        
-        with tempfile.TemporaryDirectory() as directory:
+        with tempfile.TemporaryDirectory() as directory: # создаем временную папку
 
-          archive_path = os.path.join(directory, name_file+'_changed_archive.tar')
-          archive = tarfile.open(archive_path, mode='x:gz')
+          archive_path = os.path.join(directory, name_file+'_changed_archive.tar')  # задаем путь до архива во временной папке
+          archive = tarfile.open(archive_path, mode='x:gz')  # открываем архив
+  
+          for name in files:  # пробегаемся по всем файлам
+            os.rename(os.path.join(reports_path, name), os.path.join(directory, name)) # перемещаем созданные файлы во временную папку
 
-          for name in files:
-            os.rename(os.path.join(reports_path, name), os.path.join(directory, name))
+          archive.add(directory, name_file+'-changed') # добовляем их в архив
 
-          archive.add(directory, name_file+'-changed')
-
-          archive.close()
-          os.rename(os.path.join(directory, name_file+'_changed_archive.tar'), os.path.join(reports_path, name_file+'_changed_archive.tar'))
+          archive.close() # закрываем архив
+          os.rename(os.path.join(directory, name_file+'_changed_archive.tar'), os.path.join(reports_path, name_file+'_changed_archive.tar')) # переносим архив в папку с изменнными файлами
 
 
-        result = 'reports/changed/'+name_file+'_changed_archive.tar'
+        result = 'reports/changed/'+name_file+'_changed_archive.tar' # задаем путь до архива
 
-      else:
-        result = 'reports/changed/'+name_file+'-changed'+'.xlsx'
+      else:  # если файл только один
+        result = 'reports/changed/'+name_file+'-changed'+'.xlsx' # просто указываем путь до архива
 
   
 
