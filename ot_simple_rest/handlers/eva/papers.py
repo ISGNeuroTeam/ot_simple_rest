@@ -75,6 +75,7 @@ class PapersHandler(BaseHandler):  # метод возвращающий все 
           files.append(file) # то заносим этот файл в подготовленный массив
       # listOfFiles = [f for f in os.listdir(reports_path) if os.path.isfile(f)]
       # print(files)
+      
       self.write({'files':files,'status': 'success'}) # возвращаем список файлов и сообщение что успешно все прошло 
 
 
@@ -122,27 +123,54 @@ class PaperHandler(BaseHandler): # метод который изменит фа
 
     def work_xlsx(self,path,data,name_file): # метод для работы с xlsx файлами
 
-      wb = openpyxl.load_workbook(path) # открываем файл
-      sheet = wb.active  # выбираем активный лист
-      sheet_name = wb.get_sheet_names()[0] # здесь запоминаме имя этого активного листа
-
-      
-  
-      for rownum in range(sheet.max_row): # пробегаемся по всем строкам 
-        for columnnum in range(sheet.max_column): #  и в каждой строке по всем столбцам
-          cell = sheet.cell(rownum + 1, columnnum + 1).value #  запоминаем занчение в текущей ячейки
-          for key in data.keys(): # пробегаемся по словарю данных с фронта
-            if cell is not None and type(cell) is str: # првоеряем не пустая ли ячейка и что ячейка строка 
-              if  cell.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
-                cell = cell.replace('$'+key+'$', data[key])  # то заменяем значение ячейке на значение из данных
-                sheet.cell(rownum + 1, columnnum + 1).value = cell # Записываем измененую ячейку в файл
-            
+      files = []
       reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
-      full_path =  os.path.join(reports_path, name_file+'-changed'+'.xlsx') # уже полный путь с названием файла
-      wb.save(full_path) # сохраняем измененный файл в папку
+      result = ''
+
+      for i, part_data in enumerate(data):
+
+        wb = openpyxl.load_workbook(path) # открываем файл
+        sheet = wb.active  # выбираем активный лист
+        sheet_name = wb.get_sheet_names()[0] # здесь запоминаме имя этого активного листа
+  
+        for rownum in range(sheet.max_row): # пробегаемся по всем строкам 
+          for columnnum in range(sheet.max_column): #  и в каждой строке по всем столбцам
+            cell = sheet.cell(rownum + 1, columnnum + 1).value #  запоминаем занчение в текущей ячейки
+            for key in part_data.keys(): # пробегаемся по словарю данных с фронта
+              if cell is not None and type(cell) is str: # првоеряем не пустая ли ячейка и что ячейка строка 
+                if  cell.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
+                  cell = cell.replace('$'+key+'$', part_data[key])  # то заменяем значение ячейке на значение из данных
+                  sheet.cell(rownum + 1, columnnum + 1).value = cell # Записываем измененую ячейку в файл
+              
+        filename = name_file+'-changed-'+str(i)+'.xlsx'
+        files.append(filename) # уже полный путь с названием файла
+        wb.save(os.path.join(reports_path, filename)) # сохраняем измененный файл в папку
+
+      if len(files) > 1:
+
+       
+        with tempfile.TemporaryDirectory() as directory:
+
+          archive_path = os.path.join(directory, name_file+'_changed_archive.tar')
+          archive = tarfile.open(archive_path, mode='x:gz')
+
+          for name in files:
+            os.rename(os.path.join(reports_path, name), os.path.join(directory, name))
+
+          archive.add(directory, name_file+'-changed')
+
+          archive.close()
+          os.rename(os.path.join(directory, name_file+'_changed_archive.tar'), os.path.join(reports_path, name_file+'_changed_archive.tar'))
 
 
-      return 'reports/changed/'+name_file+'-changed'+'.xlsx' # возвращаем ссылку на измененный файл 
+        result = 'reports/changed/'+name_file+'_changed_archive.tar'
+
+      else:
+        result = 'reports/changed/'+name_file+'-changed'+'.xlsx'
+
+  
+
+      return result # возвращаем ссылку на измененный файл 
 
 
       
