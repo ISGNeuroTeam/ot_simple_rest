@@ -110,17 +110,26 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         args = {}
         tornado.httputil.parse_body_arguments(self.request.headers['Content-Type'], body, args, {}) # парсим и получаем данные в нужном нам виде
         file_name = args['file'][0].decode('utf-8')  # получаем имя нужного файла после раскадировки
+        # try:
+        #     file_name = file_name.split(',')
+        # except:
+        #     file_name = [file_name]
+
         reports_path = self.static_conf['static_path'] + 'reports' # путь до папки откуда брать файлы
-        full_path =  os.path.join(reports_path, file_name)  # полный путь уже с именем нужного файла
         data = args['data'][0].decode('utf-8')  # декадируем данные пришедшие с фронта 
         data = json.loads(data) # и превращаем json в словарь
-        about_file = file_name.split('.') # получаем массив в котором первое значение имя файла, а второе его разрешение
-        file_res = ''  # результат в виде ссылки на измененный файл
+        file_res = []  # результат в виде ссылки на измененный файл
+
+        # for filenm in file_name:
+
+        full_path =  os.path.join(reports_path,  file_name)  # полный путь уже с именем нужного файла
+        about_file =  file_name.split('.') # получаем массив в котором первое значение имя файла, а второе его разрешение
+        
+
         if about_file[1] == 'xlsx': # если файл с разрешением xlsx 
           file_res = self.work_xlsx(full_path,data,about_file[0]) # то вызываем метод который обработает xlsx
         else:
-          file_res = self.work_docx(full_path,data,about_file[0]) # то вызываем метод который обработает docx
-        
+          file_res =self.work_docx(full_path,data,about_file[0]) # то вызываем метод который обработает docx
 
             
         self.write({'file':file_res,'status': 'success'}) # вернем ссылку на новый обработанный файл и сообщение что все успешно прошло
@@ -139,8 +148,10 @@ class PaperHandler(BaseHandler): # метод который изменит фа
             if  paragraph.text.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
               paragraph.text = paragraph.text.replace('$'+key+'$', part_data[key])
 
-        
-        filename = name_file+'-changed-'+str(i)+'.docx'
+        if (len(data) > 1):
+          filename = name_file+'-changed-'+str(i)+'.docx'
+        else:
+          filename = name_file+'-changed'+'.docx'
         files.append(filename) # уже полный путь с названием файла
         doc.save(os.path.join(reports_path, filename))  # сохраняем измененный файл в папку
       
@@ -189,8 +200,12 @@ class PaperHandler(BaseHandler): # метод который изменит фа
                 if  cell.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
                   cell = cell.replace('$'+key+'$', part_data[key])  # то заменяем значение ячейке на значение из данных
                   sheet.cell(rownum + 1, columnnum + 1).value = cell # Записываем измененую ячейку в файл
-              
-        filename = name_file+'-changed-'+str(i)+'.xlsx'
+        
+        if (len(data) > 1):
+          filename = name_file+'-changed-'+str(i)+'.xlsx'
+        else:
+          filename = name_file+'-changed'+'.xlsx'
+
         files.append(filename) # уже полный путь с названием файла
         wb.save(os.path.join(reports_path, filename)) # сохраняем измененный файл в папку
 
