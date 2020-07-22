@@ -3,7 +3,7 @@ import io
 import jwt
 import uuid
 import json
-# import docx
+import docx
 import openpyxl
 import tempfile
 import tarfile
@@ -127,7 +127,46 @@ class PaperHandler(BaseHandler): # метод который изменит фа
 
     def work_docx(self,path,data,name_file): # метод для работы с xlsx файлами
       result = ''
-      print(path,data,name_file)
+      files= []
+      reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
+
+      for i, part_data in enumerate(data):
+
+        doc = docx.Document(path)
+
+        for paragraph in doc.paragraphs:  
+          for key in part_data.keys(): # пробегаемся по словарю данных с фронта
+            if  paragraph.text.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
+              paragraph.text = paragraph.text.replace('$'+key+'$', part_data[key])
+
+        
+        filename = name_file+'-changed-'+str(i)+'.docx'
+        files.append(filename) # уже полный путь с названием файла
+        doc.save(os.path.join(reports_path, filename))  # сохраняем измененный файл в папку
+      
+
+      if len(files) > 1: #  если у нас несколько файлов
+
+       
+        with tempfile.TemporaryDirectory() as directory: # создаем временную папку
+
+          archive_path = os.path.join(directory, name_file+'_changed_archive.tar')  # задаем путь до архива во временной папке
+          archive = tarfile.open(archive_path, mode='x:gz')  # открываем архив
+  
+          for name in files:  # пробегаемся по всем файлам
+            os.rename(os.path.join(reports_path, name), os.path.join(directory, name)) # перемещаем созданные файлы во временную папку
+
+          archive.add(directory, name_file+'-changed') # добовляем их в архив
+
+          archive.close() # закрываем архив
+          os.rename(os.path.join(directory, name_file+'_changed_archive.tar'), os.path.join(reports_path, name_file+'_changed_archive.tar')) # переносим архив в папку с изменнными файлами
+
+
+        result = 'reports/changed/'+name_file+'_changed_archive.tar' # задаем путь до архива
+
+      else:  # если файл только один
+        result = 'reports/changed/'+name_file+'-changed'+'.docx' # просто указываем путь до архива
+
       return result # возвращаем ссылку на измененный файл 
 
     def work_xlsx(self,path,data,name_file): # метод для работы с xlsx файлами
