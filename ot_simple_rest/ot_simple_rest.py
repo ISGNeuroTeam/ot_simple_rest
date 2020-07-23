@@ -217,7 +217,7 @@ def main():
 
         (r'/api/eva/reports/load', PaperLoadHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf}),
         (r'/api/eva/reports/getAll', PapersHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf}),
-        (r'/api/eva/reports/get', PaperHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf}),
+        (r'/api/eva/reports/get', PaperHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf,"mem_conf": mem_conf}),
         
         
     ],
