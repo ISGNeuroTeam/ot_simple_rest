@@ -26,7 +26,7 @@ __maintainer__ = "Andrey Starchenkov"
 __email__ = "fmetelkin@isgneuro.com"
 __status__ = "Develop"
 
-# TODO Каталог должен быть вынесен в конфиг, а не захардкожен.
+
 # TODO PEP8 иначе казнить, нельзя помиловать.
 # TODO Это тоже из PEP8, но все равно отдельно вынесу. Отступы только в пробелах и соответсвенно уровням вложенности. Ужас.
 # TODO Все зависимости внешние в requirements.txt
@@ -61,7 +61,7 @@ class PaperLoadHandler(BaseHandler):   # метод отвечающяя за з
         files = {}
         tornado.httputil.parse_body_arguments(self.request.headers['Content-Type'], body, args, files) # парсим и получаем данные в нужном нам виде
 
-        # TODO нельзя склеивать пути руками, используй либу
+        # TODO нельзя склеивать пути руками, используй либу   нужно сделать через os.path.join
         reports_path = self.static_conf['static_path'] + 'reports' # путь куда будем сохранять файл
         # TODO добавить проверку на то, что файл там вообще есть, иначе вылетишь с ошибкой. Сообщить пользователю, если файла нет.
         _file = files['file'][0] # тут из всех переданных данных забираем собственно файл
@@ -97,8 +97,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         super().initialize(kwargs['db_conn_pool'])
         self.static_conf = kwargs['static_conf']
         # TODO ты нигде дальше не используешь self.mem_conf. Зачем сохранять его в тело класса?
-        self.mem_conf = kwargs['mem_conf']
-        self.data_path = self.mem_conf['path']
+        self.data_path = kwargs['mem_conf']['path']
         self.logger = logging.getLogger('osr')
         self.static_dir_name = 'storage'
 
@@ -123,8 +122,6 @@ class PaperHandler(BaseHandler): # метод который изменит фа
     async def post(self): # метод который изменит файл на основе данных с фронта и отдаст ссылку на новый
         body = self.request.body # получаем данные с фронта
         args = {}
-        # TODO ты нигде не используешь переменную data, а потом перезаписываешь ее. Отсюда можно убрать.
-        data = {}
         tornado.httputil.parse_body_arguments(self.request.headers['Content-Type'], body, args, {}) # парсим и получаем данные в нужном нам виде
         file_name = args['file'][0].decode('utf-8')  # получаем имя нужного файла после раскадировки
         # TODO никогда не склеивай пути руками. Черевато последствиями.
@@ -134,6 +131,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
           data = args['data'][0].decode('utf-8') # если получить удалось
           data = {"status": "success", "data": json.loads(data)} # то подготавливаем дату в нужный нам вид и записываем туды данные
         # TODO нужно конретизировать ошибку, т.к. тут могут быть проблемы парсинга data. То есть она пришла, но ты не смог прогрузить JSON.
+        # добавить except 
         # В этом случае не верно считать, что она не пришла.
         except: # если такого ключа нет, значит нам эти данные нужно поулчить самим
           cid = args['cid'][0].decode('utf-8')  # получаем cid запроса
@@ -142,10 +140,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
           for i, json_data in enumerate(data['data']): # так же нам надо перевести строки json в dist  поэтому пробегаемся по всем данным
             # TODO В этот момент ты увеличил в 2.5 раза объем занимаемый датасетом. Зачем?
             data['data'][i] = json.loads(json_data)  # и распаршиваем json данные в dict
-
           
-        # TODO Когда тебя спросят, почему не пересчитали запрос сами, говори, что его результаты могли измениться
-        #  за прошедшее время, и пользователь должен на них снова посмотреть.
         if data['status'] == 'failed':
           self.write({'description':'cache is cleared and search is gone','status': 'failed'})
         else:
@@ -173,9 +168,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
       reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
 
       for i, part_data in enumerate(data):
-
-        
-
+       
         doc = docx.Document(path)
 
         for paragraph in doc.paragraphs:  
@@ -186,7 +179,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
               paragraph.text = paragraph.text.replace('$'+key+'$', part_data[key])
 
         if (len(data) > 1):   # если несколько строк данных
-          # TODO Дай нормальные имена переменным. file_name и name_file. За что ты так с нами?
+          # TODO Дай нормальные имена переменным. file_name и name_file. За что ты так с нами?  file_full_name
           filename = f"{name_file}_{datetime.strftime(datetime.now()+ timedelta(seconds=i), '%Y%m%d%H%M%S')}.docx" # то создаем несоклько файлов но каждому следующему увеличиваем время на секунду
         else: # если строка всего одна
           filename = f"{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.docx" # то просто задаем ей имя исходя из времени создания
@@ -195,6 +188,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         doc.save(os.path.join(reports_path, filename))  # сохраняем измененный файл в папку
 
        
+
         
      
 
@@ -217,20 +211,17 @@ class PaperHandler(BaseHandler): # метод который изменит фа
       html = []
 
      
-      # TODO Очень странно перебираешь ты данные) Почитай другую статью)
       for i, part_data in enumerate(data):
 
 
         wb = openpyxl.load_workbook(path) # открываем файл
         sheet = wb.active  # выбираем активный лист
         # TODO Зачем? Ты его нигде не используешь дальше.
-        sheet_name = wb.get_sheet_names()[0] # здесь запоминаме имя этого активного листа
+        # sheet_name = wb.get_sheet_names()[0] # здесь запоминаме имя этого активного листа
   
         for rownum in range(sheet.max_row): # пробегаемся по всем строкам 
           for columnnum in range(sheet.max_column): #  и в каждой строке по всем столбцам
-            # TODO А что в итоге с первой строкой будет? И что будет когда ты прибавишь 1 к последней строке?
             cell = sheet.cell(rownum + 1, columnnum + 1).value #  запоминаем занчение в текущей ячейки
-            # TODO По факту ты повторяешься здесь. Вынеси  в отдельный метод.
             for key in part_data.keys(): # пробегаемся по словарю данных с фронта
               if cell is not None and type(cell) is str: # првоеряем не пустая ли ячейка и что ячейка строка 
                 if  cell.find('$'+key+'$') != -1: # а затем проверяем есть ли в этой ячейке ключ словаря
@@ -267,7 +258,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
       
       with tempfile.TemporaryDirectory() as directory: # создаем временную папку ## ну ты и лентяй
 
-        archive_name = f"{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}_archive.tar"
+        archive_name = f"{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}_archive.tar.gz"
         archive_path = os.path.join(directory, archive_name)  # задаем путь до архива во временной папке
         # TODO Уверен, что на винде откроется архив этот?
         archive = tarfile.open(archive_path, mode='x:gz')  # открываем архив
@@ -275,7 +266,6 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         for name in files:  # пробегаемся по всем файлам
           os.rename(os.path.join(reports_path, name), os.path.join(directory, name)) # перемещаем созданные файлы во временную папку
 
-        # TODO По-моему, ты имя файла неверное указываешь
         archive.add(directory, name_file+'-changed') # добовляем их в архив
 
         archive.close() # закрываем архив
@@ -294,7 +284,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         for i in range(length): # пробегаемся по массиву файлов
             file_name = file_names[i] # достаем искомый файл
             with open(os.path.join(path_to_cache_dir, file_name)) as fr: # открываем его для прочтения
-                # TODO Размер файла может превышать объем нашей памяти. Нельзя читать его целиком. Нужно ввести ограничение на объем или читать построчно.
+                # TODO Размер файла может превышать объем нашей памяти. Нельзя читать его целиком. Нужно ввести ограничение на объем или читать построчно. readline!!!
                 body = fr.read().strip().split('\n')  # считываем содержимое файлов, избавляясь от пустых мест, и сразу разбивая его в массив по строкам
         result = {"status": "success","data": body}  #отдаем успешный статус и наши данные
       except: # если не получилось достучаться до файла
