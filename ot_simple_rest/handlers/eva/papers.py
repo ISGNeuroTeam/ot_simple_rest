@@ -5,6 +5,7 @@ import uuid
 import json
 import docx
 import openpyxl
+from xlsx2html import xlsx2html
 import tempfile
 import tarfile
 from datetime import datetime, timedelta
@@ -140,11 +141,12 @@ class PaperHandler(BaseHandler): # метод который изменит фа
           else:
             file_res =self.work_docx(full_path,data,about_file[0]) # то вызываем метод который обработает docx
 
-          self.write({'file':file_res,'status': 'success'}) # вернем ссылку на новый обработанный файл и сообщение что все успешно прошло
+          self.write({'file':file_res['link'],'html':file_res['html'],'names':file_res['names'],'status': 'success'}) # вернем ссылку на новый обработанный файл и сообщение что все успешно прошло
 
     def work_docx(self,path,data,name_file): # метод для работы с xlsx файлами
       result = ''
       files= []
+      html = []
       reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
 
       for i, part_data in enumerate(data):
@@ -166,12 +168,17 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         files.append(filename) # уже полный путь с названием файла
         doc.save(os.path.join(reports_path, filename))  # сохраняем измененный файл в папку
 
+       
+        
+     
+
+
       if len(files) > 1: #  если у нас несколько файлов
 
-        result = 'reports/changed/'+self.to_archive(name_file,files,reports_path) # задаем путь до архива, вызвав метод для создания архивов
+        result = {"link" : 'reports/changed/'+self.to_archive(name_file,files,reports_path), "html" : html,"names": files} # задаем путь до архива, вызвав метод для создания архивов
 
       else:  # если файл только один
-        result = f"reports/changed/{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.docx" # просто указываем путь до архива
+        result = {"link" : f"reports/changed/{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.docx", "html" : html, "names": files}  # просто указываем путь до архива
 
       return result # возвращаем ссылку на измененный файл 
 
@@ -179,13 +186,13 @@ class PaperHandler(BaseHandler): # метод который изменит фа
 
       files = []
       reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
-      result = ''
+      result = {}
+      html = []
 
      
 
       for i, part_data in enumerate(data):
 
-      
 
         wb = openpyxl.load_workbook(path) # открываем файл
         sheet = wb.active  # выбираем активный лист
@@ -206,14 +213,20 @@ class PaperHandler(BaseHandler): # метод который изменит фа
           filename = f"{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.xlsx"  # то просто задаем ей имя исходя из времени создания
 
         files.append(filename) # уже полный путь с названием файла
+
+
         wb.save(os.path.join(reports_path, filename)) # сохраняем измененный файл в папку
+
+        out_stream = xlsx2html(os.path.join(reports_path, filename))
+        out_stream.seek(0)
+        html.append(out_stream.read())
 
       if len(files) > 1: #  если у нас несколько файлов
 
-        result = 'reports/changed/'+self.to_archive(name_file,files,reports_path) # задаем путь до архива, вызвав метод для создания архивов
+        result = {"link" : 'reports/changed/'+self.to_archive(name_file,files,reports_path), "html" : html, "names": files} # задаем путь до архива, вызвав метод для создания архивов
 
       else:  # если файл только один
-        result = f"reports/changed/{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.xlsx" # просто указываем путь до архива
+        result = {"link" : f"reports/changed/{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.xlsx", "html" : html, "names": files} # просто указываем путь до архива
 
   
 
