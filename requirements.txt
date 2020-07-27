@@ -11,5 +11,5 @@ openpyxl==3.0.3
 requests==2.23.0
 pyinstaller==3.6
 python-docx==0.8.10
-xlsx2html==0.1.11
+preview-generator==0.14
 

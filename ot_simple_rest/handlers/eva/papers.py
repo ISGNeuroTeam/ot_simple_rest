@@ -5,11 +5,12 @@ import uuid
 import json
 import docx
 import openpyxl
-from xlsx2html import xlsx2html
 import tempfile
+import base64
 import zipfile
 from datetime import datetime, timedelta
 import logging
+from preview_generator.manager import PreviewManager
 
 import tornado.web
 import tornado.httputil
@@ -174,7 +175,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
       result = ''
       files= []
       html = []
-      reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
+      reports_path = os.path.join(self.static_conf['static_path'],  'reports/changed')  # задаем правлиьный путь для измененных файлов
 
       for i, part_data in enumerate(data):
        
@@ -194,9 +195,15 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         doc.save(os.path.join(reports_path, file_full_name))  # сохраняем измененный файл в папку
 
        
+        with tempfile.TemporaryDirectory() as directory:
+          preview_path = os.path.join(reports_path, file_full_name)
 
-        
-     
+          manager = PreviewManager(directory, create_folder= True)
+          path_to_preview_image = manager.get_jpeg_preview(preview_path,height=1080,width=1924)
+
+          with open(path_to_preview_image, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            html.append(encoded_string.decode('utf-8'))   
 
 
       if len(files) > 1: #  если у нас несколько файлов
@@ -204,7 +211,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
         result = {"link" : 'reports/changed/'+self.to_archive(name_file,files,reports_path), "html" : html,"names": files} # задаем путь до архива, вызвав метод для создания архивов
 
       else:  # если файл только один
-        result = {"link" : f"reports/changed/{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.docx", "html" : html, "names": files}  # просто указываем путь до архива
+        result = {"link" : f"reports/changed/{file_full_name}", "html" : html, "names": files}  # просто указываем путь до архива
 
       return result # возвращаем ссылку на измененный файл 
 
@@ -212,7 +219,7 @@ class PaperHandler(BaseHandler): # метод который изменит фа
       # TODO По-хорошему, надо вынести в отдельный модуль Преобразование файлов не должно быть частью хэндлера.
 
       files = []
-      reports_path = self.static_conf['static_path'] + 'reports/changed'  # задаем правлиьный путь для измененных файлов
+      reports_path = os.path.join(self.static_conf['static_path'],  'reports/changed')  # задаем правлиьный путь для измененных файлов
       result = {}
       html = []
 
@@ -233,25 +240,35 @@ class PaperHandler(BaseHandler): # метод который изменит фа
                   sheet.cell(rownum + 1, columnnum + 1).value = cell # Записываем измененую ячейку в файл
         
         if (len(data) > 1): # если несколько строк данных
-          filename = f"{name_file}_{datetime.strftime(datetime.now()+ timedelta(seconds=i), '%Y%m%d%H%M%S')}.xlsx" # то создаем несоклько файлов но каждому следующему увеличиваем время на секунду
+          file_full_name = f"{name_file}_{datetime.strftime(datetime.now()+ timedelta(seconds=i), '%Y%m%d%H%M%S')}.xlsx" # то создаем несоклько файлов но каждому следующему увеличиваем время на секунду
         else: # если строка всего одна
-          filename = f"{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.xlsx"  # то просто задаем ей имя исходя из времени создания
+          file_full_name = f"{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.xlsx"  # то просто задаем ей имя исходя из времени создания
 
-        files.append(filename) # уже полный путь с названием файла
+        files.append(file_full_name) # уже полный путь с названием файла
 
 
-        wb.save(os.path.join(reports_path, filename)) # сохраняем измененный файл в папку
+        wb.save(os.path.join(reports_path, file_full_name)) # сохраняем измененный файл в папку
 
-        out_stream = xlsx2html(os.path.join(reports_path, filename))
-        out_stream.seek(0)
-        html.append(out_stream.read())
+        with tempfile.TemporaryDirectory() as directory:
+          preview_path = os.path.join(reports_path, file_full_name)
+
+          manager = PreviewManager(directory, create_folder= True)
+          path_to_preview_image = manager.get_jpeg_preview(preview_path,height=1080,width=1924)
+
+          with open(path_to_preview_image, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            html.append(encoded_string.decode('utf-8')) 
+
+        # out_stream = xlsx2html(os.path.join(reports_path, file_full_name))
+        # out_stream.seek(0)
+        # html.append(out_stream.read())
 
       if len(files) > 1: #  если у нас несколько файлов
 
         result = {"link" : 'reports/changed/'+self.to_archive(name_file,files,reports_path), "html" : html, "names": files} # задаем путь до архива, вызвав метод для создания архивов
 
       else:  # если файл только один
-        result = {"link" : f"reports/changed/{name_file}_{datetime.strftime(datetime.now(), '%Y%m%d%H%M%S')}.xlsx", "html" : html, "names": files} # просто указываем путь до архива
+        result = {"link" : f"reports/changed/{file_full_name}", "html" : html, "names": files} # просто указываем путь до архива
 
   
 
