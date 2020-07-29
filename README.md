@@ -15,9 +15,9 @@ Also you need gcc and python3-devel.
 
 Install postgresql-devel lib.
 Install Python3 and virtual environment from requirements.txt.
-Install libreoffice
-Install ImageMagick-devel
-Install poppler-utils
+Install libreoffice.
+Install ImageMagick-devel.
+Install poppler-utils.
 
 ## Deployment
 
