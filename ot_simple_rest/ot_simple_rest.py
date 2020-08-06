@@ -14,7 +14,7 @@ from psycopg2.pool import ThreadedConnectionPool
 from handlers.eva.auth import AuthLoginHandler
 from handlers.eva.logs import LogsHandler
 from handlers.eva.dashs import DashboardHandler, DashboardsHandler, SvgLoadHandler, DashExportHandler, \
-    DashImportHandler, GroupExportHandler, GroupImportHandler
+    DashImportHandler, GroupExportHandler, GroupImportHandler, DashByNameHandler
 from handlers.eva.quizs import QuizsHandler, QuizHandler, QuizQuestionsHandler, QuizFilledHandler, \
     FilledQuizExportHandler, QuizExportJsonHandler, QuizImportJsonHandler, CatalogsListHandler, CatalogHandler
 from handlers.eva.role_model import UserHandler, UsersHandler, RoleHandler, RolesHandler, \
@@ -192,6 +192,8 @@ def main():
         (r'/api/dash', DashboardHandler, {"db_conn_pool": db_pool_eva}),
         (r'/api/dash/export', DashExportHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
         (r'/api/dash/import', DashImportHandler, {"db_conn_pool": db_pool_eva}),
+        (r'/api/dashByName', DashByNameHandler, {"db_conn_pool": db_pool_eva}),
+        
 
         (r'/api/load/svg', SvgLoadHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
 

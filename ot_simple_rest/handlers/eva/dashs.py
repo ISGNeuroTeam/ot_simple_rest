@@ -44,6 +44,7 @@ class DashboardsHandler(BaseHandler):
 # TODO: Make two separate handlers for full dash data and data without body
 class DashboardHandler(BaseHandler):
     async def get(self):
+        
         dash_id = self.get_argument('id', None)
         if not dash_id:
             raise tornado.web.HTTPError(400, "param 'id' is needed")
@@ -58,11 +59,13 @@ class DashboardHandler(BaseHandler):
         dash_name = self.data.get('name', None)
         dash_body = self.data.get('body', "")
         dash_groups = self.data.get('groups', None)
+        dash_idgroup = self.data.get('idgroup', None)
         if not dash_name:
             raise tornado.web.HTTPError(400, "params 'name' is needed")
         try:
             _id, modified = self.db.add_dash(name=dash_name,
                                              body=dash_body,
+                                             idgroup=dash_idgroup,
                                              groups=dash_groups)
         except Exception as err:
             raise tornado.web.HTTPError(409, str(err))
@@ -72,11 +75,11 @@ class DashboardHandler(BaseHandler):
         dash_id = self.data.get('id', None)
         if not dash_id:
             raise tornado.web.HTTPError(400, "param 'id' is needed")
-
         try:
             name, modified = self.db.update_dash(dash_id=dash_id,
                                                  name=self.data.get('name', None),
                                                  body=self.data.get('body', None),
+                                                 idgroup=self.data.get('idgroup', None),
                                                  groups=self.data.get('groups', None))
         except Exception as err:
             raise tornado.web.HTTPError(409, str(err))
@@ -88,6 +91,23 @@ class DashboardHandler(BaseHandler):
             raise tornado.web.HTTPError(400, "param 'name' is needed")
         dash_id = self.db.delete_dash(dash_id=dash_id)
         self.write({'id': dash_id})
+
+class DashByNameHandler(BaseHandler):
+    async def get(self):
+        
+        dash_name = self.get_argument('name', None)
+        dash_idgroup = self.get_argument('idgroup', None)
+        if not dash_name:
+            raise tornado.web.HTTPError(400, "param 'name' is needed")
+        if not dash_idgroup:
+            raise tornado.web.HTTPError(400, "param 'idgroup' is needed")
+        try:
+            dash = self.db.get_dash_data_by_name(dash_name=dash_name,dash_idgroup=dash_idgroup)
+        except Exception as err:
+            raise tornado.web.HTTPError(409, str(err))
+      
+        self.write({'data': dash})
+
 
 
 class SvgLoadHandler(BaseHandler):
