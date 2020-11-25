@@ -22,7 +22,8 @@ class TestEE(unittest.TestCase):
     func=%(funcName)s - %(message)s")
 
     def test_start_ee(self):
-        result = requests.post('http://localhost:50000/api/ee/process/python').json()
+        result = requests.post('http://localhost:50000/api/ee/process/python',
+                               data={'scriptName': 'fake_sum_calculator.calculator'}).json()
         print(result)
         target = 'ok'
         self.assertEqual(result['status'], target)
@@ -41,3 +42,4 @@ class TestEE(unittest.TestCase):
         result = requests.post(f'{self.base_url}/calc', data=DWT).text
         target = 'OK'
         self.assertEqual(result, target)
+

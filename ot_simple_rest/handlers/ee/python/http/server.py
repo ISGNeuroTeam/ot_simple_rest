@@ -13,20 +13,27 @@ class Server:
         'failed': {'status': 'failed'},
     }
 
-    def __init__(self, port, address='0.0.0.0'):
+    def __init__(self, port, script, address='0.0.0.0'):
+        self.script = script
         self.port = port
         self.address = address
         self.batches = []
         self._schema = None
+        self.plugin = None
         self.bottle = Bottle()
         self.init_routes()
+        self.init_plugin()
         self.queue = multiprocessing.Queue()
 
     def init_routes(self):
         self.bottle.route(path='/schema', method='POST', callback=self.url_schema)
         self.bottle.route(path='/batch', method='POST', callback=self.url_batch)
-        self.bottle.route(path='/calc', method='POST', callback=self.url_calc)
-        self.bottle.route(path='/status', method='POST', callback=self.url_status)
+        self.bottle.route(path='/calc', method='GET', callback=self.url_calc)
+        self.bottle.route(path='/status', method='GET', callback=self.url_status)
+        self.bottle.route(path='/result', method='GET', callback=self.url_result)
+
+    def init_plugin(self):
+        self.plugin = self.script.Worker()
 
     def url_schema(self):
         print('schema')
@@ -49,16 +56,28 @@ class Server:
         print('calc')
         print(self._schema)
         print(self.batches)
-        cp = multiprocessing.Process(target=self.external_process, args=(self.queue, self.batches, self._schema))
+        cp = multiprocessing.Process(target=self.external_process,
+                                     args=(self.queue, self.batches, self._schema, self.plugin))
         cp.start()
         return self.status['ok']
 
     def url_status(self):
-        print('status')
+        if self.queue.empty():
+            return self.status['running']
+        else:
+            return self.status['finished']
+
+    def url_result(self):
+        schema, dataset = self.queue.get()
+        response = {'schema': schema, 'dataset': dataset}
+        return response
 
     def run(self):
         self.bottle.run(host=self.address, port=self.port)
 
     @staticmethod
-    def external_process(queue, batches, schema):
-        calculator = Calculator.
+    def external_process(queue, batches, schema, plugin):
+        plugin.load_data(schema, batches)
+        new_schema, result = plugin.calc()
+
+        queue.put((new_schema, result))
