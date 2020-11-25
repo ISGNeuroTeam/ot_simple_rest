@@ -22,7 +22,10 @@ class TestEE(unittest.TestCase):
     func=%(funcName)s - %(message)s")
 
     def test_start_ee(self):
-        requests.post('http://localhost:50000/api/ee/process/python')
+        result = requests.post('http://localhost:50000/api/ee/process/python').json()
+        print(result)
+        target = 'ok'
+        self.assertEqual(result['status'], target)
 
     def test_ee_http_server_batch(self):
         # server = handlers.ee.python.http.server.Server(self.port)

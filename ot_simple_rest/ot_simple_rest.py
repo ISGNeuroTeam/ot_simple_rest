@@ -8,6 +8,7 @@ from configparser import ConfigParser
 
 import tornado.ioloop
 import tornado.web
+from handlers.ee.python.pythonhandler import PythonHandler
 
 from psycopg2.pool import ThreadedConnectionPool
 
@@ -124,6 +125,7 @@ def main():
     static_conf = dict(config['static'])
     user_conf = dict(config['user'])
     pool_conf = dict(config['db_pool_conf'])
+    ee_conf = dict(config['external execution'])
 
     # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -147,6 +149,8 @@ def main():
     # Create and start task scheduler
     scheduler = DbTasksSchduler(db_conn_pool=db_pool_eva)
     scheduler.start()
+
+    ee_port = {'latest_port': int(ee_conf.get('port_range').split(',')[0])}
 
     # Set TORNADO application with custom handlers.
     application = tornado.web.Application([
@@ -218,9 +222,12 @@ def main():
         (r'/qapi/catalog/edit', CatalogHandler, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/catalog/delete', CatalogHandler, {"db_conn_pool": db_pool_eva}),
 
-        (r'/api/eva/reports/load', PaperLoadHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf}),
-        (r'/api/eva/reports/getAll', PapersHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf}),
-        (r'/api/eva/reports/get', PaperHandler, {"db_conn_pool": db_pool_eva,"static_conf": static_conf,"mem_conf": mem_conf}),
+        (r'/api/eva/reports/load', PaperLoadHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
+        (r'/api/eva/reports/getAll', PapersHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf}),
+        (r'/api/eva/reports/get', PaperHandler, {"db_conn_pool": db_pool_eva, "static_conf": static_conf,
+                                                 "mem_conf": mem_conf}),
+        (r'/api/ee/process/python', PythonHandler, {"ee_conf": ee_conf, "ee_port": ee_port}),
+
     ],
         login_url=r'/api/auth/login'
     )

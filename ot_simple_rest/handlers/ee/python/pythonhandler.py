@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 
@@ -21,16 +22,19 @@ __status__ = "Develop"
 
 class PythonHandler(tornado.web.RequestHandler, ABC):
 
-    def initialize(self, static_conf):
+    def initialize(self, ee_conf, ee_port):
         """
         Gets config and init logger.
 
-        :param static_conf: todo
+        :param ee_port: todo
+        :param ee_conf: todo
 
         :return:
         """
         self.handler_id = str(uuid.uuid4())
-        self.static_conf = static_conf
+        self.ee_conf = ee_conf
+        self.ee_port = ee_port
+        self.ee_address = ee_conf.get('address', '0.0.0.0')
         self.logger = logging.getLogger('osr_hid')
 
     def write_error(self, status_code: int, **kwargs) -> None:
@@ -52,24 +56,25 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
             self.logger.debug(f'Error_msg: {error_msg}', extra={'hid': self.handler_id})
             self.finish(error_msg)
 
-    async def post(self):
+    async def get(self):
         """
         It writes response to remote side.
 
         :return:
         """
 
-        def eep_target(port):
-            server = Server(port)
+        def eep_target(port, address):
+            server = Server(port, address)
             server.run()
 
         self.logger.info("Request: %s" % self.request.body)
 
-        print('Starting ee process')
-        eep = multiprocessing.Process(target=eep_target, args=(50100,))
+        self.ee_port['latest_port'] += 1
+        print(f'Starting ee process on {self.ee_address} port {self.ee_port["latest_port"]}')
+        eep = multiprocessing.Process(target=eep_target, args=(self.ee_port['latest_port'], self.ee_address))
         eep.start()
-
         print('Started ee process')
-        response = {'status': 'ok'}
-        self.write(response)
+        response = {'status': 'ok', 'pid': eep.pid, 'base_url': f'http://{self.ee_address}:{self.ee_port["latest_port"]}'}
+
+        self.write(json.dumps(response))
 
