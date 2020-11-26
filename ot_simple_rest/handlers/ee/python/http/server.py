@@ -1,5 +1,8 @@
 import json
 import multiprocessing
+import os
+import signal
+
 
 from bottle import Bottle, request
 
@@ -31,6 +34,7 @@ class Server:
         self.bottle.route(path='/calc', method='GET', callback=self.url_calc)
         self.bottle.route(path='/status', method='GET', callback=self.url_status)
         self.bottle.route(path='/result', method='GET', callback=self.url_result)
+        self.bottle.route(path='/stop', method='GET', callback=self.url_stop)
 
     def init_plugin(self):
         self.plugin = self.script.Worker()
@@ -66,6 +70,11 @@ class Server:
 
     def run(self):
         self.bottle.run(host=self.address, port=self.port)
+
+    def url_stop(self):
+        self.bottle.close()
+        pid = os.getpid()
+        os.kill(pid, signal.SIGTERM)  # or signal.SIGKILL
 
     @staticmethod
     def external_process(queue, batches, schema, plugin):

@@ -73,7 +73,8 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
         imported_script = importlib.import_module(f"handlers.ee.python.plugins.{script_name}")
         self.logger.debug(imported_script)
         self.ee_port['latest_port'] += 1
-
+        active_processes = multiprocessing.active_children()
+        self.logger.info(f'Active processes: {active_processes}')
         self.logger.info(f'Starting ee process on {self.ee_address} port {self.ee_port["latest_port"]}')
         eep = multiprocessing.Process(target=eep_target,
                                       args=(self.ee_port['latest_port'], self.ee_address, imported_script))
