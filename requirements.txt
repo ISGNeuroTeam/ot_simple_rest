@@ -13,3 +13,5 @@ pyinstaller==3.6
 python-docx==0.8.10
 preview-generator==0.14
 
+
+bottle~=0.12.19
