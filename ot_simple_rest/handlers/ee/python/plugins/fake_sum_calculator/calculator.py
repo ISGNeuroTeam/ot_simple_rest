@@ -1,12 +1,9 @@
-class Worker:
+from handlers.ee.python.plugins.plugin import Plugin
 
-    def __init__(self):
-        self.schema = None
-        self.dataset = None
 
-    def load_data(self, schema, dataset):
-        self.schema = schema
-        self.dataset = dataset
+class Worker(Plugin):
 
     def calc(self):
+        dataset = self.dataset
+        schema = self.schema
         return "`y` INT, `z` INT", [[1, 2], [3, 4]]

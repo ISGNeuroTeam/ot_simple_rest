@@ -68,17 +68,18 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
             server = Server(port, script, address)
             server.run()
 
-        self.logger.info("Request: %s" % self.request.body)
+        self.logger.debug("Request: %s" % self.request.body)
         script_name = self.request.body.decode('utf-8')
         imported_script = importlib.import_module(f"handlers.ee.python.plugins.{script_name}")
-        self.logger.info(imported_script)
+        self.logger.debug(imported_script)
         self.ee_port['latest_port'] += 1
-        print(f'Starting ee process on {self.ee_address} port {self.ee_port["latest_port"]}')
+
+        self.logger.info(f'Starting ee process on {self.ee_address} port {self.ee_port["latest_port"]}')
         eep = multiprocessing.Process(target=eep_target,
                                       args=(self.ee_port['latest_port'], self.ee_address, imported_script))
         eep.start()
-        print('Started ee process')
         response = {'status': 'ok', 'pid': eep.pid, 'base_url': f'http://{self.ee_address}:{self.ee_port["latest_port"]}'}
+        self.logger.info(f'Started ee web process with pid: {eep.pid}')
 
         self.write(json.dumps(response))
 

@@ -36,26 +36,18 @@ class Server:
         self.plugin = self.script.Worker()
 
     def url_schema(self):
-        print('schema')
         schema = request.body.read()
-        print(schema)
         self._schema = schema
         return self.status['ok']
 
     def url_batch(self):
-        print('batch')
         batch = request.body.read()
-        print(batch)
         batch = json.loads(batch)
-        print(batch)
         self.batches += batch
 
         return self.status['ok']
 
     def url_calc(self):
-        print('calc')
-        print(self._schema)
-        print(self.batches)
         cp = multiprocessing.Process(target=self.external_process,
                                      args=(self.queue, self.batches, self._schema, self.plugin))
         cp.start()
