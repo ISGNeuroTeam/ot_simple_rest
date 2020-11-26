@@ -38,3 +38,7 @@ static_path = /opt/otp/static/
 
 [user]
 check_index_access = False
+
+[external execution]
+address = localhost
+port_range = 50100, 50109
