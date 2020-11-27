@@ -35,7 +35,6 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
         self.handler_id = str(uuid.uuid4())
         self.ee_conf = ee_conf
         self.ee_port = ee_port
-        self.ee_address = ee_conf.get('address', '0.0.0.0')
         self.logger = logging.getLogger('osr_hid')
 
     def write_error(self, status_code: int, **kwargs) -> None:
@@ -70,16 +69,20 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
 
         self.logger.debug("Request: %s" % self.request.body)
         script_name = self.request.body.decode('utf-8')
-        imported_script = importlib.import_module(f"handlers.ee.python.plugins.{script_name}")
+
+        plugins_path = self.ee_conf.get("plugins", "handlers.ee.python.plugins")
+        ee_address = self.ee_conf.get('address', '0.0.0.0')
+
+        imported_script = importlib.import_module(f"{plugins_path}.{script_name}")
         self.logger.debug(imported_script)
         self.ee_port['latest_port'] += 1
         active_processes = multiprocessing.active_children()
         self.logger.info(f'Active processes: {active_processes}')
-        self.logger.info(f'Starting ee process on {self.ee_address} port {self.ee_port["latest_port"]}')
+        self.logger.info(f'Starting ee process on {ee_address} port {self.ee_port["latest_port"]}')
         eep = multiprocessing.Process(target=eep_target,
-                                      args=(self.ee_port['latest_port'], self.ee_address, imported_script))
+                                      args=(self.ee_port['latest_port'], ee_address, imported_script))
         eep.start()
-        response = {'status': 'ok', 'pid': eep.pid, 'base_url': f'http://{self.ee_address}:{self.ee_port["latest_port"]}'}
+        response = {'status': 'ok', 'pid': eep.pid, 'base_url': f'http://{ee_address}:{self.ee_port["latest_port"]}'}
         self.logger.info(f'Started ee web process with pid: {eep.pid}')
 
         self.write(json.dumps(response))
