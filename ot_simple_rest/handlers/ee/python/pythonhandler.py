@@ -68,14 +68,16 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
             server = Server(port, script, address)
             server.run()
 
-        self.logger.info(f'Libs paths: {sys.path}.')
         self.logger.debug("Request: %s" % self.request.body)
         script_name = self.request.body.decode('utf-8')
 
         plugins_path = self.ee_conf.get("plugins", "handlers.ee.python.plugins")
+        sys.path.append(plugins_path)
+        self.logger.info(f'Libs paths: {sys.path}.')
         ee_address = self.ee_conf.get('address', '0.0.0.0')
-
-        imported_script = importlib.import_module(f"{plugins_path}.{script_name}")
+        plugin_module_name = f"{plugins_path}.{script_name}"
+        self.logger.info(f'Will import module: {plugin_module_name}')
+        imported_script = importlib.import_module(plugin_module_name)
         self.logger.debug(imported_script)
         self.ee_port['latest_port'] += 1
         active_processes = multiprocessing.active_children()

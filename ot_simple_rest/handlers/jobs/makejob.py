@@ -131,8 +131,8 @@ class MakeJob(BaseHandler):
         original_otl = self.get_original_otl()
         indexes = re.findall(r"index\s?=\s?([\"\']?_?\w+[_\w+]*[\"\']?)", original_otl)
         access_flag, indexes = self.user_has_right(indexes)
-        if not access_flag:
-            return self.write({"status": "fail", "error": "User has no access to index"})
+        # if not access_flag:
+        #     return self.write({"status": "fail", "error": "User has no access to index"})
 
         self.logger.debug(f'User has access. Indexes: {indexes}.', extra={'hid': self.handler_id})
         response = await self.jobs_manager.make_job(hid=self.handler_id,
