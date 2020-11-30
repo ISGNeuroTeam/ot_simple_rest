@@ -2,6 +2,7 @@ import importlib
 import json
 import logging
 import uuid
+import sys
 
 import multiprocessing
 from abc import ABC
@@ -67,6 +68,7 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
             server = Server(port, script, address)
             server.run()
 
+        self.logger.info(f'Libs paths: {sys.path}.')
         self.logger.debug("Request: %s" % self.request.body)
         script_name = self.request.body.decode('utf-8')
 
