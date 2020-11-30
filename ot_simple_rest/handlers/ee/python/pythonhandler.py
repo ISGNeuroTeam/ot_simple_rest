@@ -72,10 +72,11 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
         script_name = self.request.body.decode('utf-8')
 
         plugins_path = self.ee_conf.get("plugins", "handlers.ee.python.plugins")
-        sys.path.append(plugins_path)
+        if plugins_path not in sys.path:
+            sys.path.append(plugins_path)
         self.logger.info(f'Libs paths: {sys.path}.')
         ee_address = self.ee_conf.get('address', '0.0.0.0')
-        plugin_module_name = f"{plugins_path}.{script_name}"
+        plugin_module_name = script_name
         self.logger.info(f'Will import module: {plugin_module_name}')
         imported_script = importlib.import_module(plugin_module_name)
         self.logger.debug(imported_script)
@@ -90,4 +91,3 @@ class PythonHandler(tornado.web.RequestHandler, ABC):
         self.logger.info(f'Started ee web process with pid: {eep.pid}')
 
         self.write(json.dumps(response))
-

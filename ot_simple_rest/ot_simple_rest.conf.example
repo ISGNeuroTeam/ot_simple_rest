@@ -42,4 +42,4 @@ check_index_access = False
 [external execution]
 address = localhost
 port_range = 50100, 50109
-plugins = handlers.ee.python.plugins
+plugins = /opt/otp/ot_simple_rest/plugins

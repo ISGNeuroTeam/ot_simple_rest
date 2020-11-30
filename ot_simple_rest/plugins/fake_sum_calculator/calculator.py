@@ -1,4 +1,4 @@
-from handlers.ee.python.plugins.plugin import Plugin
+from plugin import Plugin
 
 
 class Worker(Plugin):
