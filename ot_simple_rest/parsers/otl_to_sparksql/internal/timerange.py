@@ -5,10 +5,19 @@ from datetime import date as date_class
 from dateutil.relativedelta import relativedelta
 
 
+
 """ !!!!!!!!!!! """
 """ OLD VERSION """
 """ !!!!!!!!!!! """
 
+'''
+<review>
+
+Не нужно оставлять закомментирванный старый код. 
+Зачем? Если кгда-то очень захочется на него взшлянуть, git хранит всё ))
+
+</review>
+'''
 
 # class Timerange:
 #     @staticmethod
@@ -68,6 +77,14 @@ class Timerange:
         - add auto detecting datetime format
     """
 
+    '''
+    <review>
+
+    Сомнительная аннотация при объявлении класса.
+
+    </review>
+    '''
+
     datetime_format: str = "%m/%d/%Y:%H:%M:%S"
 
     def __init__(self, current_datetime: datetime = None):
@@ -80,6 +97,51 @@ class Timerange:
         self.__now: datetime = current_datetime or datetime.now()
 
     def __get_current_time(self) -> int:
+
+        """
+        <review>
+
+        Здесь и далее:
+        У функций в питоне есть несколько правил (конвенций) наименований.
+        В них включаются функции с двойным подчеркиванием в начале и функции с одним подчеркиванием в начале.
+        У этих двух правил схожее значение, тем не менее они имеют серьезное отличие:
+        К функциям или атрибутам с одним подчеркиванием (_get_current_time) пользователи должны
+        относится как к приватным частям API или деталям реализации.
+        Такие функции и атрибуты могут быть изменены без уведомления об этом в ченджлоге,
+        а их имплементация может в принципе не гарантировать заявленного поведения.
+        Иными словами, пользовательский не должен от них зависеть.
+        Тем не менее, ничего сверхъестественного не произойдет при обращении к ним.
+
+        Функции или атрибуты с двумя подчеркиваниями в начале (__get_current_time)
+        (не путать с Magic функциями) применяются, когда приватный метод нужен не по причине приватности API,
+        а ради ООП. Функции с двойным подчеркиванием в начале предоставляют возможность реализовать такой атрибут,
+        который бы делился между родительским и дочерним классом с виду, но при этом оставлял бы их реально приватными
+        (не путать с protected), то есть недоступными напрямую подклассам. Для этого на таких атрибутах и методах
+        применяется name mangling - все такие функции в описанном классе для всех, кроме его самого,
+        будут доступны по _ClassName__attrname, а не просто __attrname.
+        Пример:
+                >>> class MyClass:
+                ...     def __test(self):
+                ...             return 1
+                ...     def smth(self):
+                ...             return self.__test()
+                >>> a =  MyClass()
+                >>> a.smth()
+                1
+                >>> a.__test()
+                Traceback (most recent call last):
+                 File "<stdin>", line 1, in <module>
+                AttributeError: 'MyClass' object has no attribute '__test'
+                >>> a._MyClass__test()
+                1
+
+        Насколько я понимаю, в приведенном классе такое поведение излишне и стоило использовать одинарное подчеркивание.
+
+        В целом принцип деления функций на публичные и приватные в этом классе мне не понятен.
+
+        </review>
+        """
+
         """
 
         Returns:
@@ -127,8 +189,24 @@ class Timerange:
 
         """
 
+        '''
+        <review>
+
+        А вот с этой функцией совсем беда.
+        1) Слишком большая, слишком
+        2) Содержит вложенные функции. Зачем??? Все эти вложенные функции -- статические. Их надо выносить.
+        3) abbreviations должно быть аттрибутом класса, а ещё лучше: конфигурироваться
+        4) Структура данных abbreviations выбрана неверно и вслед за ней и алгоритм (get_full_abbr_by_name).
+        
+
+        </review>
+        '''
+
+
         # copy original time
         now: datetime = self.__now
+
+
 
         """ !!!!!!!!!!!!!!!! """
         """ CONFIG FUNCTIONS """
@@ -159,6 +237,14 @@ class Timerange:
             'Y': ['y', 'yr', 'yrs', 'year', 'years']
         }
 
+        '''
+        <review>
+
+        Лишние, совершенно лишние тайпхинты при объявлении переменной литералом.
+
+        </review>
+        '''
+
         abbreviations_rules: dict = {
             # calendar time range
             'std_time_range':
@@ -188,6 +274,14 @@ class Timerange:
         """ !!!!!!!!!!!!!!!!!!!! """
 
         def get_full_abbr_by_name(abbr_: str, with_s: bool = False) -> (str, str) or (None, None):
+            '''
+            <review>
+
+            Когда делаешь гет чего-либо бай нейм, надо стараться сделать это за константное время, а не ходить циклами.
+            Здесь это обусловлено структурой данных abbreviations. Возможно, решение о выборе структуры неверно.
+
+            </review>
+            '''
             res_ = [(key, abbreviations[key][-1 if with_s else -2])
                     for key in abbreviations if
                     abbr_ in abbreviations[key]]
@@ -220,12 +314,21 @@ class Timerange:
                 get_full_abbr_by_key(abbr_key_i, with_s=False):
                     abbreviations_rules['std_time_range'][abbr_key_i]['snap_value']
                 for abbr_key_i in abbr_key_list
-                if abbreviations_rules['std_time_range'][abbr_key_i]['allow_snap']}
+                if abbreviations_rules['std_time_range'][abbr_key_i]['allow_snap']
+            }
             return now_.replace(**snap_dict)
 
         """ !!!!!!!!!!!!!! """
         """ ALGORITHM BODY """
         """ !!!!!!!!!!!!!! """
+
+        '''
+        <review>
+
+        Здесь и выше. Такой формат комментария нигде у нас не применяется. Не будем и начинать ))
+
+        </review>
+        '''
 
         spliter_regex: str = r"(\+|-|\@)"
         abbr_regex: str = r"(\d+)"
@@ -276,8 +379,16 @@ class Timerange:
 
             # time snap if @
             # тут без говнокода никак, уж извините
-            elif not sign and 1 <= len(num_abbr_union) <= 2:
 
+            elif not sign and 1 <= len(num_abbr_union) <= 2:
+                '''
+                <review>
+
+                В 99% случаев можно без говнокода. Вряд ли это тот один процент когда ну совсем никак..
+                Можно, например,  начать с того, что условия if'ов вынести в функции.
+
+                </review>
+                '''
                 # FIRST PARAM
                 if not num_abbr_union[0].isdigit():
                     abbr = num_abbr_union[0]
