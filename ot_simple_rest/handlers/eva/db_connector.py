@@ -1,6 +1,8 @@
 from tools.pg_connector import PGConnector
 from copy import deepcopy
 
+from utils.exceptions import QueryError
+
 __author__ = "Anton Khromov"
 __copyright__ = "Copyright 2019, Open Technologies 98"
 __credits__ = []
@@ -9,6 +11,8 @@ __version__ = "0.1.2"
 __maintainer__ = "Andrey Starchenkov"
 __email__ = "akhromov@ot.ru"
 __status__ = "Production"
+
+
 
 
 def flat_to_set(arr):

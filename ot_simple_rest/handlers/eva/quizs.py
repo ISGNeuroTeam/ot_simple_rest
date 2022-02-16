@@ -13,6 +13,9 @@ from openpyxl import Workbook
 from handlers.eva.base import BaseHandler
 
 import logging
+
+from utils.exceptions import QueryError
+
 logger = logging.getLogger('osr')
 
 class QuizsHandler(BaseHandler):
@@ -55,8 +58,10 @@ class QuizHandler(BaseHandler):
         try:
             quiz_id = self.db.add_quiz(name=quiz_name,
                                        questions=questions)
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': quiz_id})
 
     async def put(self):
@@ -69,8 +74,10 @@ class QuizHandler(BaseHandler):
             quiz_id = self.db.update_quiz(quiz_id=quiz_id,
                                           name=quiz_name,
                                           questions=questions)
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': quiz_id})
 
     async def delete(self):
@@ -98,8 +105,10 @@ class QuizFilledHandler(BaseHandler):
             filled_quizs = self.db.get_filled_quiz(quiz_id=quiz_type_id,
                                                    offset=offset,
                                                    limit=limit)
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         count = self.db.get_filled_quizs_count(quiz_type_id) if quiz_type_id else len(filled_quizs)
         self.write({'data': filled_quizs, 'count': count})
 
@@ -116,8 +125,10 @@ class QuizFilledHandler(BaseHandler):
                                          quiz_id=quiz_type_id,
                                          questions=questions)
                 filled_ids.append(quiz_type_id)
-            except Exception as err:
+            except QueryError as err:
                 raise tornado.web.HTTPError(409, str(err))
+            except Exception as e:
+                raise tornado.web.HTTPError(500, str(e))
         self.write({'ids': filled_ids})
 
 
@@ -136,8 +147,10 @@ class QuizQuestionsHandler(BaseHandler):
         try:
             logger.debug(quiz_ids)
             questions = self.db.get_quiz_questions(quiz_ids=quiz_ids)
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'data': questions})
 
 
@@ -161,8 +174,10 @@ class FilledQuizExportHandler(BaseHandler):
             quiz_data = quiz_data[0] if quiz_data else None
             if not quiz_data:
                 raise tornado.web.HTTPError(404, f'No quiz with id={quiz_id}')
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
 
         questions = quiz_data['questions']
         quiz_name = quiz_data['name'].replace('«', '"').replace('»', '"')
@@ -227,8 +242,10 @@ class QuizExportJsonHandler(BaseHandler):
                     quiz_data = self.db.get_quiz(quiz_id=qid)
                     if not quiz_data:
                         raise tornado.web.HTTPError(404, f'No quiz with id={qid}')
-                except Exception as err:
+                except QueryError as err:
                     raise tornado.web.HTTPError(409, str(err))
+                except Exception as e:
+                    raise tornado.web.HTTPError(500, str(e))
 
                 filename = f'{qid}.json'
                 filepath = os.path.join(tmp_dir, filename)
@@ -287,8 +304,10 @@ class QuizImportJsonHandler(BaseHandler):
                 try:
                     self.db.add_quiz(name=quiz_name,
                                      questions=questions)
-                except Exception as err:
+                except QueryError as err:
                     raise tornado.web.HTTPError(409, str(err))
+                except Exception as e:
+                    raise tornado.web.HTTPError(500, str(e))
             self.write({'status': 'success'})
 
 
@@ -320,8 +339,10 @@ class CatalogHandler(BaseHandler):
         try:
             catalog_id = self.db.add_catalog(name=catalog_name,
                                              content=content)
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': catalog_id})
 
     async def put(self):
@@ -334,8 +355,10 @@ class CatalogHandler(BaseHandler):
             catalog_id = self.db.update_catalog(catalog_id=catalog_id,
                                                 name=catalog_name,
                                                 content=content)
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': catalog_id})
 
     async def delete(self):

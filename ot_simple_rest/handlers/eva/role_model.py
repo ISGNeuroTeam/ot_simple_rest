@@ -5,6 +5,7 @@ import tornado.ioloop
 import tornado.web
 
 from handlers.eva.base import BaseHandler
+from utils.exceptions import QueryError
 
 __author__ = "Anton Khromov"
 __copyright__ = "Copyright 2019, Open Technologies 98"
@@ -67,8 +68,10 @@ class UserHandler(BaseHandler):
                                            roles=self.data.get('roles', None),
                                            groups=self.data.get('groups', None))
                 self.write({'id': user_id})
-            except Exception as err:
+            except QueryError as err:
                 raise tornado.web.HTTPError(409, str(err))
+            except Exception as e:
+                raise tornado.web.HTTPError(500, str(e))
         else:
             raise tornado.web.HTTPError(403, "no permission for create roles")
 
@@ -176,8 +179,10 @@ class RoleHandler(BaseHandler):
             role_id = self.db.add_role(name=role_name,
                                        users=self.data.get('users', None),
                                        permissions=self.data.get('permissions', None))
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': role_id})
 
     async def put(self):
@@ -257,8 +262,10 @@ class GroupHandler(BaseHandler):
                                          users=self.data.get('users', None),
                                          dashs=self.data.get('dashs', None),
                                          indexes=self.data.get('indexes', None))
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': group_id})
 
     async def put(self):
@@ -326,8 +333,10 @@ class PermissionHandler(BaseHandler):
         try:
             permission_id = self.db.add_permission(name=permission_name,
                                                    roles=self.data.get('roles', None))
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': permission_id})
 
     async def put(self):
@@ -394,8 +403,10 @@ class IndexHandler(BaseHandler):
         try:
             index_id = self.db.add_index(name=index_name,
                                          groups=self.data.get('groups', None))
-        except Exception as err:
+        except QueryError as err:
             raise tornado.web.HTTPError(409, str(err))
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
         self.write({'id': index_id})
 
     async def put(self):
@@ -488,6 +499,5 @@ class UserSettingHandler(BaseHandler):
                 self.write('{"status": "success"}')
             else:
                 raise tornado.web.HTTPError(409, str("Update error"))
-        except Exception as err:
-            raise tornado.web.HTTPError(409, str(err))
-            self.write('{"status": "error"}')
+        except Exception as e:
+            raise tornado.web.HTTPError(500, str(e))
