@@ -706,7 +706,6 @@ class PostgresConnector(PGConnector):
     def update_dash(self, *, dash_id, name, body, groups=None):
         dash_name = self.execute_query("SELECT name FROM dash WHERE id = %s;", params=(dash_id,))
         body = str(body)
-        c=1
         if not dash_name:
             raise QueryError(f'dash with id={dash_id} is not exists')
 
