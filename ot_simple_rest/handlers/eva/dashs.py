@@ -26,7 +26,6 @@ __status__ = "Production"
 class DashboardsHandler(BaseHandler):
     async def get(self):
         kwargs = {}
-
         if 'list_dashs' in self.permissions or 'admin_all' in self.permissions:
             target_group_id = self.get_argument('id', None)
             if target_group_id:
@@ -49,6 +48,8 @@ class DashboardHandler(BaseHandler):
             raise tornado.web.HTTPError(400, "param 'id' is needed")
         try:
             dash = self.db.get_dash_data(dash_id=dash_id)
+            dash.modified = int(dash.modified)
+
         except Exception as err:
             raise tornado.web.HTTPError(409, str(err))
         all_groups = self.db.get_groups_data(names_only=True)
@@ -56,7 +57,7 @@ class DashboardHandler(BaseHandler):
 
     async def post(self):
         dash_name = self.data.get('name', None)
-        dash_body = self.data.get('body', "")
+        dash_body = str(self.data.get('body', ""))
         dash_groups = self.data.get('groups', None)
         if not dash_name:
             raise tornado.web.HTTPError(400, "params 'name' is needed")
@@ -64,8 +65,11 @@ class DashboardHandler(BaseHandler):
             _id, modified = self.db.add_dash(name=dash_name,
                                              body=dash_body,
                                              groups=dash_groups)
+            modified = int(modified)
+
         except Exception as err:
             raise tornado.web.HTTPError(409, str(err))
+
         self.write({'id': _id, 'modified': modified})
 
     async def put(self):
@@ -74,10 +78,13 @@ class DashboardHandler(BaseHandler):
             raise tornado.web.HTTPError(400, "param 'id' is needed")
 
         try:
+
             name, modified = self.db.update_dash(dash_id=dash_id,
                                                  name=self.data.get('name', None),
                                                  body=self.data.get('body', None),
                                                  groups=self.data.get('groups', None))
+            modified = int(modified)
+
         except Exception as err:
             raise tornado.web.HTTPError(409, str(err))
         self.write({'id': dash_id, 'name': name, 'modified': modified})
@@ -100,7 +107,7 @@ class DashByNameHandler(BaseHandler):
             raise tornado.web.HTTPError(400, "param 'idgroup' is needed")
         try:
             dash_name = dash_name.replace('"', '')
-            #FIXME need remove double quote replacement
+            
 
             dash = self.db.get_dash_data_by_name(dash_name=dash_name, dash_group=dash_idgroup)
         except Exception as err:
@@ -319,6 +326,7 @@ class GroupImportHandler(BaseHandler):
     Or you can put your own 'eva.group' file with dirs named group_id
     with inner dashs json files.
     """
+
     def initialize(self, db_conn_pool):
         super().initialize(db_conn_pool)
         self.logger = logging.getLogger('osr')
