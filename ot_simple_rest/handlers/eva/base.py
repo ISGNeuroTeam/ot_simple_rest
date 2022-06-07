@@ -53,9 +53,14 @@ class BaseHandler(tornado.web.RequestHandler):
     def generate_token(self, payload):
         return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
-    async def prepare(self):
+    def _parse_data(self):
+        try:
+            return json.loads(self.request.body) if self.request.body else {}
+        except json.JSONDecodeError:
+            return {}
 
-        self.data = json.loads(self.request.body) if self.request.body else dict()
+    async def prepare(self):
+        self.data = self._parse_data()
         client_token = self.get_cookie('eva_token')
         if client_token:
             self.token = client_token
