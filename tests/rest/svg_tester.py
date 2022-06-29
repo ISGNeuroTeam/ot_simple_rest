@@ -58,7 +58,7 @@ class SvgTester:
             resp = self.send_request(endpoint=self.endpoint, method='POST', files=files)
         finally:
             self.__cleanup_data('file')
-        return resp == {'status': 'ok', 'filename': 'file'}
+        return resp == {'status': 'ok', 'filename': 'file', 'status_code': 3}
 
     def test__load_duplicate(self):
         try:
@@ -72,7 +72,7 @@ class SvgTester:
         finally:
             self.__cleanup_data('file')
             self.__cleanup_data('file_1')
-        return resp == {'status': 'ok', 'filename': 'file_1'}
+        return resp == {'status': 'ok', 'filename': 'file_1', 'status_code': 3}
 
     def test__delete_svg(self):
         try:
@@ -84,9 +84,9 @@ class SvgTester:
             resp = self.send_request(endpoint=self.endpoint, method='DELETE', data=data)
         finally:
             self.__cleanup_data('file')
-        return resp == {'status': 'ok'}
+        return resp == {'status': 'ok', 'status_code': 3}
 
     def test__delete_nonexistent(self):
         data = {'filename': 'file'}
         resp = self.send_request(endpoint=self.endpoint, method='DELETE', data=data)
-        return resp == {'status': 'failed', 'error': 'file not found'}
+        return resp == {'status': 'failed', 'error': 'file not found', 'status_code': 5}
