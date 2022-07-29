@@ -323,6 +323,11 @@ class Resolver:
 
         :param otl: original OTL.
         :return: dict with search query params.
+
+        >>> Resolver(['testlookup.csv'], 0, 0).resolve("| inputlookup testlookup.csv | search ORG=4 | eval a=2")
+        {'search': ('| inputlookup testlookup.csv | search ORG=4 | eval a=2', '| inputlookup testlookup.csv | filter {"query": "ORG=\\\\"4\\\\"", "fields": ["ORG"]}| eval a=2'), 'subsearches': {}}
+        >>> Resolver(['testlookup.csv'], 0, 0).resolve("| inputlookup testlookup.csv | search ABC=4 | eval a=2")
+        {'search': ('| inputlookup testlookup.csv | search ABC=4 | eval a=2', '| inputlookup testlookup.csv | filter {"query": "ABC=\\\\"4\\\\"", "fields": ["ABC"]}| eval a=2'), 'subsearches': {}}
         """
         _otl = re.sub(Macros.macros_pattern, self.transform_macros, otl)
 
@@ -332,21 +337,33 @@ class Resolver:
         _otl = (_otl, 1)
         while _otl[1]:
             _otl = re.subn(self.subsearch_pattern, self.create_subsearch, _otl[0])
+        self.logger.debug(f"Transformed after 'create_subsearch': {_otl}")
 
         _otl = re.sub(self.quoted_return_pattern, self.return_quoted, _otl[0])
+        self.logger.debug(f"Transformed after 'return_quoted': {_otl}")
         _otl = self.return_no_subsearch_commands(_otl)
+        self.logger.debug(f"Transformed after func 'return_no_subsearch_commands': {_otl}")
 
         _otl = re.sub(self.otfrom_pattern, self.create_datamodels, _otl)
+        self.logger.debug(f"Transformed after 'create_datamodels': {_otl}")
 
         _otl = re.sub(self.read_pattern_middle, self.create_read_graph, _otl, flags=re.I)
         _otl = re.sub(self.read_pattern_start, self.create_read_graph, _otl, flags=re.I)
+        self.logger.debug(f"Transformed after 'create_read_graph': {_otl}")
         _otl = re.sub(self.otstats_pattern_middle, self.create_otstats_graph, _otl, flags=re.I)
         _otl = re.sub(self.otstats_pattern_start, self.create_otstats_graph, _otl, flags=re.I)
+        self.logger.debug(f"Transformed after 'create_otstats_graph': {_otl}")
 
         _otl = re.sub(self.otrest_pattern, self.create_otrest, _otl)
+        self.logger.debug(f"Transformed after 'create_otrest': {_otl}")
         _otl = re.sub(self.filter_pattern, self.create_filter_graph, _otl, flags=re.I)
+        self.logger.debug(f"Transformed after 'create_filter_graph': {_otl}")
         _otl = re.sub(self.otinputlookup_where_pattern, self.create_inputlookup_filter, _otl)
+        self.logger.debug(f"Transformed after 'create_inputlookup_filter': {_otl}")
         _otl = re.sub(self.otloadjob_id_pattern, self.create_otloadjob_id, _otl)
+        self.logger.debug(f"Transformed after 'create_otloadjob_id': {_otl}")
         _otl = re.sub(self.scala_inline_pattern, self.scala_inline_transformer, _otl, flags=re.S)
+        self.logger.debug(f"Transformed after 'scala_inline_transformer': {_otl}")
         _otl = re.sub(self.spark_inline_pattern, self.spark_inline_transformer, _otl, flags=re.S)
+        self.logger.debug(f"Transformed after 'spark_inline_transformer': {_otl}")
         return {'search': (otl, _otl), 'subsearches': self.subsearches}
