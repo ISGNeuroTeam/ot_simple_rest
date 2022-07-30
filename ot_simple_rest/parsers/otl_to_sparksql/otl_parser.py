@@ -96,6 +96,12 @@ class OTLtoSQL:
         Arguments:
         otl(str): Input OTL request
 
+        >>> OTLtoSQL.parse_filter("| inputlookup testlookup.csv | search org=4 | search ANDPOINT=4 | search NOTEPAD=4")
+        {'query': '(_raw like \\'%|%\\') AND (_raw like \\'%inputlookup%\\') AND (_raw like \\'%testlookup.csv%\\') AND\
+ (_raw like \\'%|%\\') AND (_raw like \\'%search%\\') AND org="4" AND (_raw like \\'%|%\\') AND\
+ (_raw like \\'%search%\\') AND ANDPOINT="4" AND (_raw like \\'%|%\\') AND (_raw like \\'%search%\\')\
+ AND NOTEPAD="4"',\
+ 'fields': ['org', 'ANDPOINT', 'NOTEPAD']}
         """
         indices_list = []
         fields_list = []

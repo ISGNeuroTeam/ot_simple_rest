@@ -16,9 +16,9 @@ OTLGrammar = r'''
                 | 'index=' '"'SPACEDINDEX'"';
                 Q: STRING "=" V;
                 G: E "," E;
-                A: E "AND" E;
-                O: E "OR" E;
-                N: "NOT" E;
+                A: E "AND " E;
+                O: E "OR " E;
+                N: "NOT " E;
                 NQ: STRING "!=" V;
                 C: STRING ">" V
                 | STRING ">=" V

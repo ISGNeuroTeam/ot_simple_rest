@@ -171,6 +171,7 @@ class Resolver:
 
         :param match_object: Re match object with original OTL.
         :return: String with replaces of filter part.
+
         """
         query = match_object.group(1)
         graph = OTLtoSQL.parse_filter(query)
