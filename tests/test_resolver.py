@@ -46,6 +46,30 @@ class TestResolver(unittest.TestCase):
         print('target', target)
         self.assertDictEqual(result, target)
 
+    def test_name_field_with_or_and1(self):
+        otl = """| search index=main2 AND ORD=1 OR ORAND=2"""
+        target = {'search': ('| search index=main2 AND ORD=1 OR ORAND=2',
+                             '| filter {"query": "ORD=\\"1\\" OR ORAND=\\"2\\"", "fields": ["ORD", "ORAND"]}'),
+                  'subsearches': {}}
+        result = self.resolver.resolve(otl)
+        print('result', result)
+        print('target', target)
+        self.assertDictEqual(result, target)
+
+    def test_name_field_with_or_and2(self):
+        otl = """| otstats index=test | search org=4 AND andr=True | search and=3 | search OR=2"""
+        target = {'search': ('| otstats index=test | search org=4 AND andr=True | search and=3 | search OR=2',
+                             '| otstats {"test": {"query": "", "tws": 0, "twf": 0}}| '
+                             'filter {"query": "org=\\"4\\" AND andr=\\"True\\"", '
+                             '"fields": ["org", "andr"]}| filter {"query": "and=\\"3\\"", '
+                             '"fields": ["and"]}| filter {"query": "OR=\\"2\\"", "fields": ["OR"]}'),
+                  'subsearches': {}}
+
+        result = self.resolver.resolve(otl)
+        print('result', result)
+        print('target', target)
+        self.assertDictEqual(result, target)
+
     def test_rex(self):
         otl = """search index=main2 SUCCESS | rex field=host "^(?<host>[^\.\:]+).*\:[0-9]" | stats count by host"""
         target = {'search': (

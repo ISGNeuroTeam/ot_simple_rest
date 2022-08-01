@@ -329,6 +329,8 @@ class Resolver:
         {'search': ('| inputlookup testlookup.csv | search ORG=4 | eval a=2', '| inputlookup testlookup.csv | filter {"query": "ORG=\\\\"4\\\\"", "fields": ["ORG"]}| eval a=2'), 'subsearches': {}}
         >>> Resolver(['testlookup.csv'], 0, 0).resolve("| inputlookup testlookup.csv | search ABC=4 | eval a=2")
         {'search': ('| inputlookup testlookup.csv | search ABC=4 | eval a=2', '| inputlookup testlookup.csv | filter {"query": "ABC=\\\\"4\\\\"", "fields": ["ABC"]}| eval a=2'), 'subsearches': {}}
+        >>> Resolver(['testlookup.csv'], 0, 0).resolve("| search index=main2 AND ORD=1 OR ORAND=2")
+        {'search': ('| search index=main2 AND ORD=1 OR ORAND=2', '| filter {"query": "ORD=\\\\"1\\\\" OR ORAND=\\\\"2\\\\"", "fields": ["ORD", "ORAND"]}'), 'subsearches': {}}
         """
         _otl = re.sub(Macros.macros_pattern, self.transform_macros, otl)
 
