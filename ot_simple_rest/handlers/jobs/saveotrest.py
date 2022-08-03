@@ -1,6 +1,6 @@
 import logging
 
-from hashlib import sha256
+from utils.hashes import hash512
 
 import tornado.web
 from tornado.ioloop import IOLoop
@@ -114,7 +114,7 @@ class SaveOtRest(tornado.web.RequestHandler):
                 sha_otl = 'otrest%s' % original_otl.split('otrest')[1]
                 data = request['data'][0].decode()
                 self.logger.debug('Data: %s.' % data)
-                service_otl = '| otrest subsearch=subsearch_%s' % sha256(sha_otl.encode()).hexdigest()
+                service_otl = '| otrest subsearch=subsearch_%s' % hash512(sha_otl)
 
                 # Registers new Job.
                 cache_id, creating_date = self.db.add_external_job(original_otl=original_otl,

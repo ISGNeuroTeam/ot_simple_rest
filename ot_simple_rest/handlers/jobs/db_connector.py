@@ -1,6 +1,8 @@
 from tools.pg_connector import PGConnector
 from utils.hashes import hash512
 
+from psycopg2.pool import ThreadedConnectionPool
+
 
 __author__ = "Anton Khromov"
 __copyright__ = "Copyright 2019, Open Technologies 98"
@@ -49,6 +51,9 @@ class PostgresConnector(PGConnector):
             return indexes[0]
 
     def add_job(self, *, search, subsearches, tws, twf, cache_ttl, username, field_extraction, preview):
+        """
+        Добавляет в 2 таблицы: OTLQueries, Cachedsl.
+        """
         job_id = creating_date = None
         query_str = "INSERT INTO OTLQueries (original_otl, service_otl, subsearches, tws, twf, cache_ttl, username, " \
                     "field_extraction, preview) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id, " \
@@ -59,6 +64,7 @@ class PostgresConnector(PGConnector):
         job_data = self.execute_query(query_str, params=stm_tuple, with_commit=True)
         if job_data:
             job_id, creating_date = job_data
+            self.add_to_cache(original_otl=search[0], tws=tws, twf=twf, cache_id=job_id, expiring_date=cache_ttl)
         return job_id, creating_date
 
     def add_sid(self, *, sid, remote_ip, original_otl):
@@ -77,6 +83,7 @@ class PostgresConnector(PGConnector):
         cache_data = self.execute_query(query_str, params=stm_tuple, with_commit=True)
         if cache_data:
             cache_id, creating_date = cache_data
+            self.add_to_cache(original_otl=original_otl, tws=tws, twf=twf, cache_id=cache_id, expiring_date=cache_ttl)
         return cache_id, creating_date
 
     def add_to_cache(self, *, original_otl, tws, twf, cache_id, expiring_date):
