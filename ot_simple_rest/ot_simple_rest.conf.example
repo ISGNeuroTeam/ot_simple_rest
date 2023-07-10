@@ -44,5 +44,10 @@ log_user_activity = True
 jobs_queue_threshold = 2
 limited_data_threshold = 100000
 
-[file_upload]
-svg_path = /opt/otp/static/svg/
+[svg_upload]
+path = /opt/otp/static/svg/
+max_file_size = 1024
+
+[static_upload]
+path = /opt/otp/static/uploads/
+max_file_size = 10240
