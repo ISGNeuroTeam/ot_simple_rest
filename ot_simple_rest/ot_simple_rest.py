@@ -21,7 +21,7 @@ from handlers.eva.role_model import UserHandler, UsersHandler, RoleHandler, Role
     PermissionsHandler, PermissionHandler, GroupsHandler, GroupHandler, UserPermissionsHandler, \
     IndexesHandler, IndexHandler, UserGroupsHandler, UserDashboardsHandler, GroupDashboardsHandler, UserSettingHandler
 from handlers.eva.papers import PaperLoadHandler, PapersHandler, PaperHandler
-from handlers.eva.svg_load import SvgLoadHandler
+from handlers.eva.file_load import FileLoadHandler
 
 from handlers.eva.theme import ThemeListHandler, ThemeGetHandler, ThemeHandler
 from handlers.eva.timelines import GetTimelines
@@ -44,7 +44,7 @@ __author__ = "Andrey Starchenkov"
 __copyright__ = "Copyright 2019, ISG Neuro"
 __credits__ = ["Anton Khromov", "Ilia Sagaidak", "Artem Zenkov"]
 __license__ = "OT.PLATFORM. License agreement."
-__version__ = "1.17.3"
+__version__ = "1.18.0"
 __maintainer__ = "Andrey Starchenkov"
 __email__ = "astarchnenkov@isgneuro.com"
 __status__ = "Production"
@@ -137,7 +137,8 @@ def main():
     user_conf = dict(config['user'])
     pool_conf = dict(config['db_pool_conf'])
     notification_conf = dict(config['notification_triggers']) if 'notification_triggers' in config else dict()
-    file_upload_conf = dict(config['file_upload']) if 'file_upload' in config else dict()
+    svg_upload_conf = dict(config['svg_upload']) if 'svg_upload' in config else dict()
+    file_upload_conf = dict(config['static_upload']) if 'static_upload' in config else dict()
 
     # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -213,7 +214,9 @@ def main():
         (r'/api/dash/import', DashImportHandler, {"db_conn_pool": db_pool_eva}),
         (r'/api/dashByName', DashByNameHandler, {"db_conn_pool": db_pool_eva}),
 
-        (r'/api/load/svg', SvgLoadHandler, {"db_conn_pool": db_pool_eva, 'file_upload_conf': file_upload_conf,
+        (r'/api/load/svg', FileLoadHandler, {"db_conn_pool": db_pool_eva, 'file_upload_conf': svg_upload_conf,
+                                            'static_conf': static_conf}),
+        (r'/api/load/file', FileLoadHandler, {"db_conn_pool": db_pool_eva, 'file_upload_conf': file_upload_conf,
                                             'static_conf': static_conf}),
         (r'/api/settings', Settings, {"db_conn_pool": db_pool_eva}),
         (r'/qapi/quizs', QuizsHandler, {"db_conn_pool": db_pool_eva}),

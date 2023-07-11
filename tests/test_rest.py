@@ -457,11 +457,12 @@ class TestSvgLoad(unittest.TestCase):
     config.set('rest_conf', 'port', '50000')
     config.add_section('static')
     config.set('static', 'static_path', '/opt/otp/static/')
-    config.add_section('file_upload')
-    config.set('file_upload', 'svg_path', '/opt/otp/static/svg/')
+    config.add_section('svg_upload')
+    config.set('svg_upload', 'path', '/opt/otp/static/svg/')
+    config.set('svg_upload', 'max_file_size', '1024')
 
     def setUp(self) -> None:
-        self.svg_path = self.config['file_upload']['svg_path']
+        self.svg_path = self.config['svg_upload']['path']
         if not os.path.exists(self.svg_path):
             root_dir = self.svg_path
             while not os.path.exists(root_dir):
@@ -476,7 +477,7 @@ class TestSvgLoad(unittest.TestCase):
 
     def tearDown(self) -> None:
         if self.cleanup_dir is not None:
-            shutil.rmtree(self.config['file_upload']['svg_path'])
+            shutil.rmtree(self.config['svg_upload']['path'])
 
     def test__load_svg(self):
         self.assertTrue(self.tester.test__load_svg())
