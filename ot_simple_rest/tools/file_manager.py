@@ -2,9 +2,9 @@ import os
 from tools.name_resolver import FileNameResolver
 
 
-class SVGManager:
+class FileManager:
     """
-    Responsible for filesystem manipulation relating to SVG files
+    Responsible for filesystem manipulation
     """
 
     def __init__(self, file_directory: str):
