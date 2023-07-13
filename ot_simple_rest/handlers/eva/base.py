@@ -1,4 +1,3 @@
-
 import logging
 
 import json
@@ -60,7 +59,6 @@ class BaseHandler(tornado.web.RequestHandler):
             return {}
 
     async def prepare(self):
-
         self.data = self._parse_data()
         client_token = self.get_cookie('eva_token')
         if client_token:

@@ -1,15 +1,33 @@
 import json
-import os
 import sys
 import logging
+import jwt
 
 import tornado.web
 import tornado.httputil
 
 from handlers.eva.base import BaseHandler
 from tools.file_manager import FileManager
+from utils.primitives import RestUser
 
 class FileLoadHandler(BaseHandler):
+    async def prepare(self):
+        client_token = self.get_cookie('eva_token')
+        if client_token:
+            self.token = client_token
+            try:
+                token_data = self.decode_token(client_token)
+                user_id = token_data['user_id']
+                user_name = token_data['username']
+                self.request.user = RestUser(name=user_name, _id=user_id)
+                self.permissions = self.db.get_permissions_data(user_id=user_id, names_only=True)
+            except (jwt.ExpiredSignatureError, jwt.DecodeError):
+                pass
+            else:
+                self.current_user = user_id
+
+        if not self.current_user:
+            raise tornado.web.HTTPError(401, "unauthorized")
 
     def initialize(self, **kwargs):
         super().initialize(kwargs['db_conn_pool'])
@@ -24,7 +42,6 @@ class FileLoadHandler(BaseHandler):
 
     async def post(self):
         try:
-            print(123321)
             body = self.request.body
             args, files = {}, {}
             tornado.httputil.parse_body_arguments(self.request.headers['Content-Type'], body, args, files)
