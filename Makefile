@@ -137,6 +137,19 @@ static_path = /opt/otp/static/\n\
 \n\
 [user]\n\
 check_index_access = False\n\
+log_user_activity = True\n\
+\n\
+[notification_triggers]\n\
+jobs_queue_threshold = 2\n\
+limited_data_threshold = 100000\n\
+\n\
+[svg_upload]\n\
+path = /opt/otp/static/svg/\n\
+max_file_size = 1024\n\
+\n\
+[static_upload]\n\
+path = /opt/otp/static/uploads/\n\
+max_file_size = 10240\n\
 " > $@
 
 nginx:
