@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [1.18.1] - 2023-07-13
+### Added
+- new config sections to makefile
+- creation of the directory from config for svg and file uploads if not exists
 ### Fixed
 - bug with 500 error while uploading .docx, .xlsx etc files
 

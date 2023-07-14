@@ -15,6 +15,8 @@ class FileManager:
         """
         Write given file to disk
         """
+        if not os.path.exists(self.file_directory):
+            os.makedirs(self.file_directory)
         resolved_filename = self.name_resolver.resolve_filename_with_suffix(filename)
         if resolved_filename is not None:
             full_filename = os.path.join(self.file_directory, resolved_filename)
