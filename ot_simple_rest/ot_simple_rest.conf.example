@@ -46,8 +46,6 @@ limited_data_threshold = 100000
 
 [svg_upload]
 path = /opt/otp/static/svg/
-max_file_size = 1024
 
 [static_upload]
 path = /opt/otp/static/uploads/
-max_file_size = 10240
