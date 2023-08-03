@@ -35,7 +35,6 @@ class FileLoadHandler(BaseHandler):
         self.static_conf = kwargs['static_conf']
         self.logger = logging.getLogger('osr')
 
-        self.MAX_FILE_SIZE = int(self.file_conf.get('max_file_size')) or 10240
         self.file_path = self.file_conf.get('path', self.static_conf['static_path'])
         
         self.file_manager = FileManager(self.file_path)
@@ -46,15 +45,14 @@ class FileLoadHandler(BaseHandler):
             args, files = {}, {}
             tornado.httputil.parse_body_arguments(self.request.headers['Content-Type'], body, args, files)
             _file = files['file'][0]
-            if sys.getsizeof(_file) > self.MAX_FILE_SIZE:
-                error_msg = f'File size more than {self.MAX_FILE_SIZE} Kb; must be less.'
-                self.logger.error(error_msg)
-                response = {'status': 'failed', 'error': f'{error_msg}', 'notifications': [{'code': 4}]}
-                self.write(json.dumps(response))
-            else:
-                named_as = self.file_manager.write(_file['filename'], _file['body'])
-                response = {'status': 'ok', 'filename': named_as, 'notifications': [{'code': 3}]}
-                self.write(json.dumps(response))
+            named_as = self.file_manager.write(_file['filename'], _file['body'])
+            self.logger.debug(f"Successfully written file to filesystem with name: '{named_as}'")
+            response = {'status': 'ok', 'filename': named_as, 'notifications': [{'code': 3}]}
+            self.write(json.dumps(response))
+        except KeyError as e:
+            self.logger.error("File must be placed in body field called 'file'!")
+            response = {'status': 'failed', 'error': "File must be placed in body field called 'file'!", 'notifications': [{'code': 4}]}
+            self.write(json.dumps(response))
         except Exception as e:
             self.logger.error(f'Error while writing file: {e}')
             response = {'status': 'failed', 'error': f'{e}', 'notifications': [{'code': 4}]}

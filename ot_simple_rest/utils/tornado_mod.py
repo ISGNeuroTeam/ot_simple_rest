@@ -47,8 +47,17 @@ class Tornado(Application):
                 user: RestUser = handler.request.user
                 log_method(f'Request from authenticated {user}')
             log_method(concat('Headers ', str(handler.request.headers).replace('\n', ' ')))
-            log_method(
-                concat('Body ', handler.request.body.decode().replace('\n', ' '))) if handler.request.body else None
+
+            if handler.request.files:
+                files = handler.request.files
+                for file in handler.request.files:
+                    log_method(f"File in body with filename: '{files[file][0]['filename']}'")
+            elif handler.request.body:
+                decoded_body = handler.request.body.decode().replace('\n', ' ')
+                log_method(concat('Body ', decoded_body)) 
+            else: 
+                log_method(concat('Body ', None)) 
+                
             log_method(
                 concat('Args ', format_args(handler.request.arguments.items()))) if handler.request.arguments else None
 
